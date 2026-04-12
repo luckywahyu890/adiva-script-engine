@@ -1,0 +1,2632 @@
+<!doctype html>
+<html lang="id">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>ADIVA Script Engine — Dokumentasi</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            :root {
+              --bg: #0a0c10;
+              --surface: #11141c;
+              --border: #1e2333;
+              --accent: #4fffb0;
+              --accent2: #ff6b6b;
+              --accent3: #6b8cff;
+              --text: #c8d0e8;
+              --muted: #5a6380;
+              --heading: #eef0f8;
+              --code-bg: #080a10;
+              --sidebar-w: 260px;
+              --nav-h: 56px;
+            }
+
+            * { margin: 0; box-sizing: border-box; }
+
+            html { scroll-behavior: smooth; }
+
+            body {
+              font-family: 'Syne', sans-serif;
+              background: var(--bg);
+              color: var(--text);
+              min-height: 100vh;
+            }
+
+            /* ── TOP NAV (mobile) ── */
+            .topbar {
+              display: none;
+              position: fixed;
+              top: 0; left: 0; right: 0;
+              height: var(--nav-h);
+              background: var(--surface);
+              border-bottom: 1px solid var(--border);
+              align-items: center;
+              justify-content: space-between;
+              padding: 0 18px;
+              z-index: 200;
+            }
+
+            .topbar-logo {
+              font-size: 16px;
+              font-weight: 800;
+              color: var(--accent);
+              letter-spacing: 0.04em;
+            }
+
+            .hamburger {
+              background: none;
+              border: 1px solid var(--border);
+              color: var(--text);
+              width: 36px;
+              height: 36px;
+              border-radius: 6px;
+              cursor: pointer;
+              font-size: 18px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              transition: border-color 0.2s;
+            }
+
+            .hamburger:hover { border-color: var(--accent); color: var(--accent); }
+
+            /* ── SIDEBAR ── */
+            .sidebar {
+              position: fixed;
+              top: 0; left: 0;
+              width: var(--sidebar-w);
+              height: 100vh;
+              background: var(--surface);
+              border-right: 1px solid var(--border);
+              padding: 28px 0;
+              overflow-y: auto;
+              z-index: 100;
+              transition: transform 0.3s ease;
+            }
+
+            .sidebar-logo {
+              padding: 0 24px 24px;
+              border-bottom: 1px solid var(--border);
+              margin-bottom: 16px;
+            }
+
+            .sidebar-logo h1 {
+              font-size: 18px;
+              font-weight: 800;
+              color: var(--accent);
+              letter-spacing: 0.04em;
+            }
+
+            .sidebar-logo p {
+              font-size: 11px;
+              color: var(--muted);
+              margin-top: 2px;
+              font-family: 'Space Mono', monospace;
+            }
+
+            .nav-group-label {
+              font-size: 10px;
+              font-weight: 700;
+              letter-spacing: 0.12em;
+              text-transform: uppercase;
+              color: var(--muted);
+              padding: 14px 24px 4px;
+            }
+
+            .nav-link {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              padding: 8px 24px;
+              font-size: 13px;
+              color: var(--muted);
+              text-decoration: none;
+              transition: color 0.15s, background 0.15s;
+              border-left: 2px solid transparent;
+            }
+
+            .nav-link .step-badge {
+              font-family: 'Space Mono', monospace;
+              font-size: 10px;
+              background: var(--border);
+              color: var(--muted);
+              padding: 1px 5px;
+              border-radius: 3px;
+            }
+
+            .nav-link:hover, .nav-link.active {
+              color: var(--heading);
+              background: rgba(79,255,176,0.05);
+              border-left-color: var(--accent);
+            }
+
+            .sidebar-overlay {
+              display: none;
+              position: fixed;
+              inset: 0;
+              background: rgba(0,0,0,0.6);
+              z-index: 99;
+            }
+
+            /* ── MAIN CONTENT ── */
+            .main {
+              margin-left: var(--sidebar-w);
+              padding: 60px 48px;
+              max-width: calc(var(--sidebar-w) + 820px);
+            }
+
+            /* ── HERO ── */
+            .hero {
+              margin-bottom: 64px;
+              padding-bottom: 48px;
+              border-bottom: 1px solid var(--border);
+            }
+
+            .hero-eyebrow {
+              font-family: 'Space Mono', monospace;
+              font-size: 11px;
+              color: var(--accent);
+              letter-spacing: 0.15em;
+              text-transform: uppercase;
+              margin-bottom: 12px;
+            }
+
+            .hero h1 {
+              font-size: clamp(32px, 5vw, 52px);
+              font-weight: 800;
+              color: var(--heading);
+              line-height: 1.1;
+              margin-bottom: 16px;
+            }
+
+            .hero h1 span { color: var(--accent); }
+
+            .hero-desc {
+              font-size: 16px;
+              color: var(--muted);
+              max-width: 560px;
+              line-height: 1.65;
+            }
+
+            .badge-row {
+              display: flex;
+              gap: 10px;
+              flex-wrap: wrap;
+              margin-top: 24px;
+            }
+
+            .badge {
+              font-family: 'Space Mono', monospace;
+              font-size: 11px;
+              padding: 4px 10px;
+              border-radius: 4px;
+              border: 1px solid;
+            }
+
+            .badge-green { color: var(--accent); border-color: rgba(79,255,176,0.3); background: rgba(79,255,176,0.06); }
+            .badge-red   { color: var(--accent2); border-color: rgba(255,107,107,0.3); background: rgba(255,107,107,0.06); }
+            .badge-blue  { color: var(--accent3); border-color: rgba(107,140,255,0.3); background: rgba(107,140,255,0.06); }
+
+            /* ── STEP CARD ── */
+            .step-section {
+              margin-bottom: 80px;
+              scroll-margin-top: 32px;
+            }
+
+            .step-header {
+              display: flex;
+              align-items: flex-start;
+              gap: 16px;
+              margin-bottom: 24px;
+            }
+
+            .step-num {
+              flex-shrink: 0;
+              width: 40px;
+              height: 40px;
+              border-radius: 8px;
+              background: rgba(79,255,176,0.1);
+              border: 1px solid rgba(79,255,176,0.3);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-family: 'Space Mono', monospace;
+              font-size: 13px;
+              font-weight: 700;
+              color: var(--accent);
+            }
+
+            .step-title-block h2 {
+              font-size: 22px;
+              font-weight: 700;
+              color: var(--heading);
+              line-height: 1.2;
+            }
+
+            .step-title-block .step-subtitle {
+              font-size: 13px;
+              color: var(--muted);
+              margin-top: 3px;
+              font-family: 'Space Mono', monospace;
+            }
+
+            .step-body {
+              background: var(--surface);
+              border: 1px solid var(--border);
+              border-radius: 12px;
+              overflow: hidden;
+            }
+
+            .step-body-inner {
+              padding: 28px;
+            }
+
+            /* ── CONCEPT CARDS ── */
+            .concept-grid {
+              display: grid;
+              grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+              gap: 12px;
+              margin: 20px 0;
+            }
+
+            .concept-card {
+              background: var(--code-bg);
+              border: 1px solid var(--border);
+              border-radius: 8px;
+              padding: 14px 16px;
+            }
+
+            .concept-card .cc-label {
+              font-size: 10px;
+              font-family: 'Space Mono', monospace;
+              color: var(--muted);
+              text-transform: uppercase;
+              letter-spacing: 0.1em;
+              margin-bottom: 6px;
+            }
+
+            .concept-card .cc-val {
+              font-size: 14px;
+              font-weight: 600;
+              color: var(--heading);
+            }
+
+            .concept-card .cc-desc {
+              font-size: 12px;
+              color: var(--muted);
+              margin-top: 4px;
+              line-height: 1.5;
+            }
+
+            /* ── PROSE ── */
+            .prose p {
+              font-size: 14px;
+              line-height: 1.75;
+              color: var(--text);
+              margin-bottom: 12px;
+            }
+
+            .prose ul {
+              padding-left: 20px;
+              margin-bottom: 12px;
+            }
+
+            .prose li {
+              font-size: 14px;
+              line-height: 1.8;
+              color: var(--text);
+            }
+
+            .prose li::marker { color: var(--accent); }
+
+            /* ── CODE ── */
+            .code-block {
+              background: var(--code-bg);
+              border: 1px solid var(--border);
+              border-radius: 8px;
+              overflow: hidden;
+              margin: 16px 0;
+              position: relative;
+            }
+
+            .code-header {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding: 10px 16px;
+              border-bottom: 1px solid var(--border);
+              background: rgba(255,255,255,0.02);
+            }
+
+            .code-lang {
+              font-family: 'Space Mono', monospace;
+              font-size: 10px;
+              color: var(--muted);
+              text-transform: uppercase;
+              letter-spacing: 0.1em;
+            }
+
+            .copy-btn {
+              font-family: 'Space Mono', monospace;
+              font-size: 10px;
+              background: none;
+              border: 1px solid var(--border);
+              color: var(--muted);
+              padding: 3px 8px;
+              border-radius: 4px;
+              cursor: pointer;
+              transition: all 0.15s;
+            }
+
+            .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+            .code-block pre {
+              padding: 18px;
+              overflow-x: auto;
+              font-family: 'Space Mono', monospace;
+              font-size: 12.5px;
+              line-height: 1.8;
+              color: #a0aec0;
+              white-space: pre;
+            }
+
+            .code-block pre .kw  { color: #6b8cff; }
+            .code-block pre .fn  { color: #4fffb0; }
+            .code-block pre .str { color: #ffd080; }
+            .code-block pre .cm  { color: #3d4a6e; font-style: italic; }
+            .code-block pre .num { color: #ff9d6b; }
+
+            /* ── TABLE ── */
+            .doc-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 16px 0;
+              font-size: 13px;
+            }
+
+            .doc-table th {
+              background: var(--code-bg);
+              color: var(--heading);
+              font-weight: 700;
+              text-align: left;
+              padding: 10px 14px;
+              border: 1px solid var(--border);
+              font-size: 11px;
+              text-transform: uppercase;
+              letter-spacing: 0.07em;
+            }
+
+            .doc-table td {
+              padding: 10px 14px;
+              border: 1px solid var(--border);
+              vertical-align: top;
+            }
+
+            .doc-table td:first-child {
+              font-family: 'Space Mono', monospace;
+              color: var(--accent);
+              font-size: 12px;
+              white-space: nowrap;
+            }
+
+            .doc-table td:last-child { color: var(--muted); line-height: 1.6; }
+
+            /* ── DIVIDER / SECTION LABEL ── */
+            .section-sep {
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              margin: 14px 0;
+              color: var(--muted);
+              font-size: 11px;
+              font-family: 'Space Mono', monospace;
+              text-transform: uppercase;
+              letter-spacing: 0.1em;
+            }
+
+            .section-sep::before, .section-sep::after {
+              content: '';
+              flex: 1;
+              height: 1px;
+              background: var(--border);
+            }
+
+            /* ── CALLOUT ── */
+            .callout {
+              border-left: 3px solid;
+              padding: 12px 16px;
+              border-radius: 0 8px 8px 0;
+              margin: 16px 0;
+              font-size: 13px;
+              line-height: 1.65;
+            }
+
+            .callout-info {
+              border-color: var(--accent3);
+              background: rgba(107,140,255,0.07);
+              color: #9bb0ff;
+            }
+
+            .callout-warn {
+              border-color: var(--accent2);
+              background: rgba(255,107,107,0.07);
+              color: #ffaaaa;
+            }
+
+            .callout-tip {
+              border-color: var(--accent);
+              background: rgba(79,255,176,0.07);
+              color: #7fffc4;
+            }
+
+            /* ── STATE FLOW ── */
+            .state-flow {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              flex-wrap: wrap;
+              margin: 20px 0;
+              padding: 16px;
+              background: var(--code-bg);
+              border: 1px solid var(--border);
+              border-radius: 8px;
+            }
+
+            .state-pill {
+              font-family: 'Space Mono', monospace;
+              font-size: 11px;
+              padding: 5px 12px;
+              border-radius: 20px;
+              border: 1px solid;
+              font-weight: 700;
+            }
+
+            .state-pill.idle  { color: #6b8cff; border-color: rgba(107,140,255,0.4); background: rgba(107,140,255,0.1); }
+            .state-pill.run   { color: #4fffb0; border-color: rgba(79,255,176,0.4);  background: rgba(79,255,176,0.1); }
+            .state-pill.jump  { color: #ffd080; border-color: rgba(255,208,128,0.4); background: rgba(255,208,128,0.1); }
+            .state-pill.fall  { color: #ff9d6b; border-color: rgba(255,157,107,0.4); background: rgba(255,157,107,0.1); }
+
+            .state-arrow {
+              color: var(--muted);
+              font-size: 14px;
+            }
+
+            /* ── FOOTER ── */
+            .footer {
+              margin-top: 80px;
+              padding: 32px 0;
+              border-top: 1px solid var(--border);
+              font-family: 'Space Mono', monospace;
+              font-size: 11px;
+              color: var(--muted);
+              text-align: center;
+            }
+
+            .footer .f-accent{
+              color: var(--accent);
+              font-weight: 700;
+            }
+
+            .footer .f-blue{
+              color: var(--accent3);
+            }
+
+            .footer .f-red{
+              color: var(--accent2);
+            }
+            .donate{
+              display:block;
+              margin-top:6px;
+              font-size:12px;
+              opacity:0.8;
+            }
+            /* ── PROGRESS BAR ── */
+            .progress-bar {
+              position: fixed;
+              top: 0; left: 0;
+              height: 2px;
+              background: var(--accent);
+              transition: width 0.1s;
+              z-index: 999;
+              box-shadow: 0 0 8px var(--accent);
+            }
+
+            /* ── SCROLLBAR ── */
+            ::-webkit-scrollbar { width: 5px; height: 5px; }
+            ::-webkit-scrollbar-track { background: var(--bg); }
+            ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+            ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+            /* ── INLINE CODE ── */
+            code {
+              font-family: 'Space Mono', monospace;
+              font-size: 12px;
+              background: var(--code-bg);
+              border: 1px solid var(--border);
+              padding: 2px 6px;
+              border-radius: 4px;
+              color: var(--accent);
+            }
+
+            /* ── RESPONSIVE ── */
+            @media (max-width: 768px) {
+              .topbar { display: flex; }
+
+              .sidebar {
+                top: var(--nav-h);
+                transform: translateX(-100%);
+              }
+
+              .sidebar.open { transform: translateX(0); }
+              .sidebar-overlay.open { display: block; }
+
+              .main {
+                margin-left: 0;
+                padding: 80px 18px 40px;
+              }
+
+              .hero h1 { font-size: 28px; }
+
+              .concept-grid { grid-template-columns: 1fr 1fr; }
+
+              .step-body-inner { padding: 18px; }
+
+              .code-block pre { font-size: 11.5px; }
+
+              .state-flow { gap: 6px; }
+            }
+
+            @media (max-width: 768px) {
+              .topbar { display: flex; }
+
+              .sidebar {
+                top: var(--nav-h);
+                height: calc(100vh - var(--nav-h));
+                overflow-y: auto;
+                transform: translateX(-100%);
+              }
+        </style>
+    </head>
+    <body>
+        <div class="progress-bar" id="pbar"></div>
+
+        <!-- Mobile topbar -->
+        <div class="topbar">
+            <span class="topbar-logo">⬡ ADIVA</span>
+            <button class="hamburger" id="hamBtn">☰</button>
+        </div>
+
+        <!-- Sidebar overlay -->
+        <div class="sidebar-overlay" id="overlay"></div>
+
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <h1>⬡ ADIVA</h1>
+                <p>Script Engine Docs v1.0</p>
+            </div>
+
+            <div class="nav-group-label">Dasar</div>
+            <a href="#step1" class="nav-link"
+                ><span class="step-badge">01</span> Game Loop</a
+            >
+            <a href="#step2" class="nav-link"
+                ><span class="step-badge">02</span> Virtual Button</a
+            >
+            <a href="#step3" class="nav-link"
+                ><span class="step-badge">03</span> Load Gambar</a
+            >
+            <a href="#step4" class="nav-link"
+                ><span class="step-badge">04</span> Tampilkan Gambar</a
+            >
+
+            <div class="nav-group-label">Kamera & State</div>
+            <a href="#step5" class="nav-link"
+                ><span class="step-badge">05</span> Kamera</a
+            >
+            <a href="#step6" class="nav-link"
+                ><span class="step-badge">06</span> Game State</a
+            >
+
+            <div class="nav-group-label">Physics</div>
+            <a href="#step7" class="nav-link"
+                ><span class="step-badge">07</span> Collision & Gravity</a
+            >
+            <a href="#step8" class="nav-link"
+                ><span class="step-badge">08</span> Jump & Platformer</a
+            >
+
+
+            <a href="#step9" class="nav-link"
+                ><span class="step-badge">09</span> Animasi Otomatis</a
+            >
+
+            <a href="#step10" class="nav-link"
+                ><span class="step-badge">10</span> Collision Detection
+                (AABB)</a
+            >
+            <div class="nav-group-label">Audio</div>
+            <a href="#step11" class="nav-link"
+                ><span class="step-badge">11</span> Memainkan audio</a
+            >
+            <div class="nav-group-label">Membuat Level 2</div>
+            <a href="#step12" class="nav-link">
+                <span class="step-badge">12</span> Berpindah Scene / Level
+            </a>
+        </nav>
+
+        <!-- Main -->
+        <main class="main">
+            <!-- Hero -->
+            <div class="hero">
+                <div class="hero-eyebrow">Dokumentasi Resmi</div>
+                <h1>ADIVA<br /><span>Script Engine</span></h1>
+                <p class="hero-desc">
+                    Framework game 2D berbasis WebGL untuk browser — dari game
+                    loop sederhana hingga sistem platformer lengkap dengan
+                    physics, kamera, dan multi-state.
+                </p>
+                <div class="badge-row">
+                    <span class="badge badge-green">WebGL</span>
+                    <span class="badge badge-blue">Canvas 2D</span>
+                    <span class="badge badge-red">Mobile Ready</span>
+                </div>
+            </div>
+
+            <!-- ── PENDAHULUAN ── -->
+            <section class="step-section" id="intro">
+                <div class="step-header">
+                    <div class="step-title-block">
+                        <h2>Pendahuluan</h2>
+                        <div class="step-subtitle">
+                            Filosofi desain ADIVA Script Engine
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step-body">
+                    <div class="step-body-inner">
+                        <div class="prose">
+                            <p>
+                                <strong>ADIVA Script Engine</strong> adalah
+                                engine game 2D sederhana yang dirancang agar
+                                mudah digunakan dan mudah dipahami. Fokus utama
+                                engine ini bukan pada sistem kompleks seperti
+                                engine besar, tetapi pada workflow yang cepat
+                                untuk membuat game berbasis gambar.
+                            </p>
+
+                            <p>
+                                Berbeda dengan banyak engine modern yang
+                                menggunakan
+                                <em>texture atlas</em> besar untuk mengejar
+                                performa maksimum, ADIVA justru mendorong
+                                penggunaan
+                                <strong>gambar terpisah satu file</strong>
+                                untuk setiap animasi atau objek.
+                            </p>
+
+                            <p>
+                                Pendekatan ini membuat proses pembuatan aset
+                                menjadi jauh lebih fleksibel, terutama jika
+                                menggunakan <strong>AI image generator</strong>.
+                                Kamu bisa membuat gambar karakter, musuh, atau
+                                pemandangan secara terpisah tanpa perlu
+                                menggabungkannya ke atlas terlebih dahulu.
+                            </p>
+
+                            <p>
+                                Dengan workflow ini, proses pembuatan game
+                                menjadi lebih cepat dan eksperimental. Developer
+                                bisa fokus pada ide gameplay tanpa terlalu
+                                dibatasi oleh pipeline aset yang rumit.
+                            </p>
+                        </div>
+
+                        <div class="section-sep">filosofi engine</div>
+
+                        <div class="concept-grid">
+                            <div class="concept-card">
+                                <div class="cc-label">Simple</div>
+                                <div class="cc-val">Mudah dipelajari</div>
+                                <div class="cc-desc">
+                                    Struktur kode sederhana dan fokus pada inti
+                                    gameplay
+                                </div>
+                            </div>
+
+                            <div class="concept-card">
+                                <div class="cc-label">AI Friendly</div>
+                                <div class="cc-val">Gambar terpisah</div>
+                                <div class="cc-desc">
+                                    Cocok untuk workflow AI generate image
+                                </div>
+                            </div>
+
+                            <div class="concept-card">
+                                <div class="cc-label">Rapid Prototype</div>
+                                <div class="cc-val">Cepat eksperimen</div>
+                                <div class="cc-desc">
+                                    Mudah membuat player, musuh, dan dunia game
+                                </div>
+                            </div>
+
+                            <div class="concept-card">
+                                <div class="cc-label">Browser Based</div>
+                                <div class="cc-val">WebGL</div>
+                                <div class="cc-desc">
+                                    Game berjalan langsung di browser
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="section-sep">struktur folder proyek</div>
+
+                        <div class="prose">
+                            <p>
+                                Sebelum memulai tutorial, berikut adalah
+                                struktur folder dasar yang digunakan pada proyek
+                                <strong>ADIVA Script Engine</strong>.
+                            </p>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">Project Structure</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre>
+Art
+ └─ (semua gambar game)
+
+Audio
+ └─ Coin.mp3
+
+Lib
+ ├─ AdivaClient.js
+ └─ AdivaServer.js
+
+STEP1.html</pre
+                            >
+                        </div>
+
+                        <div class="prose">
+                            <ul>
+                                <li>
+                                    <strong>Art</strong> → berisi semua gambar
+                                    game seperti karakter, musuh, dan objek.
+                                </li>
+                                <li>
+                                    <strong>Audio</strong> → berisi sound effect
+                                    yang digunakan di dalam game.
+                                </li>
+                                <li>
+                                    <strong>Lib</strong> → berisi file inti
+                                    engine ADIVA.
+                                </li>
+                                <li>
+                                    <strong>STEP1.html</strong> → file contoh
+                                    game yang digunakan untuk mengikuti tutorial
+                                    step-by-step.
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="callout callout-tip">
+                            Beberapa contoh game yang dibuat menggunakan
+                            <strong>ADIVA Script Engine</strong> dapat dilihat
+                            di TikTok:
+                            <code>@lucky_wahyu_jr</code>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── STEP 1 ── -->
+            <section class="step-section" id="step1">
+                <div class="step-header">
+                    <div class="step-num">01</div>
+                    <div class="step-title-block">
+                        <h2>Game Loop</h2>
+                        <div class="step-subtitle">
+                            GameLoop — inti dari semua game
+                        </div>
+                    </div>
+                </div>
+                <div class="step-body">
+                    <div class="step-body-inner">
+                        <div class="prose">
+                            <p>
+                                Game loop adalah jantung dari setiap game. ADIVA
+                                menyediakan <code>GameLoop</code> yang mengelola
+                                eksekusi frame secara otomatis.
+                            </p>
+                            <p>
+                                Kode <strong>di luar</strong>
+                                <code>game.render()</code> dieksekusi
+                                <em>sekali saja</em> saat halaman dimuat — cocok
+                                untuk load aset. Kode <strong>di dalam</strong>
+                                <code>game.render()</code> dieksekusi
+                                terus-menerus (~16.6ms sekali / 60fps).
+                            </p>
+                        </div>
+
+                        <div class="section-sep">setup</div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre><span class="cm">// ambil elemen canvas</span>
+<span class="kw">const</span> canvas = document.<span class="fn">getElementById</span>(<span class="str">"canvas"</span>)
+
+<span class="cm">// buat game loop</span>
+<span class="kw">const</span> game = <span class="kw">new</span> <span class="fn">GameLoop</span>(canvas)
+
+<span class="cm">// dieksekusi SEKALI saat halaman dimuat</span>
+console.<span class="fn">log</span>(<span class="str">"init..."</span>)
+
+game.<span class="fn">render</span>(dt => {
+  <span class="cm">// dieksekusi TERUS-MENERUS ~16.6ms</span>
+  console.<span class="fn">log</span>(<span class="str">"frame!"</span>)
+})</pre>
+                        </div>
+
+                        <div class="callout callout-info">
+                            <strong>Parameter dt</strong> adalah delta time
+                            dalam detik. Gunakan ini untuk membuat gerakan
+                            konsisten di semua device.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── STEP 2 ── -->
+            <section class="step-section" id="step2">
+                <div class="step-header">
+                    <div class="step-num">02</div>
+                    <div class="step-title-block">
+                        <h2>Virtual Button</h2>
+                        <div class="step-subtitle">
+                            VirtualButton — kontrol sentuh untuk mobile
+                        </div>
+                    </div>
+                </div>
+                <div class="step-body">
+                    <div class="step-body-inner">
+                        <div class="prose">
+                            <p>
+                                Buat tombol layar sentuh dengan
+                                <code>new VirtualButton()</code>. Cocok untuk
+                                game mobile. Posisi menggunakan properti
+                                <code>left</code>, <code>right</code>,
+                                <code>top</code>, <code>bottom</code> dalam
+                                pixel.
+                            </p>
+                        </div>
+
+                        <table class="doc-table">
+                            <tr>
+                                <th>Properti</th>
+                                <th>Keterangan</th>
+                            </tr>
+                            <tr>
+                                <td>text</td>
+                                <td>Label teks yang tampil di tombol</td>
+                            </tr>
+                            <tr>
+                                <td>left / right</td>
+                                <td>Jarak dari kiri/kanan layar (px)</td>
+                            </tr>
+                            <tr>
+                                <td>bottom / top</td>
+                                <td>Jarak dari bawah/atas layar (px)</td>
+                            </tr>
+                            <tr>
+                                <td>onPress</td>
+                                <td>Callback saat tombol ditekan</td>
+                            </tr>
+                            <tr>
+                                <td>onRelease</td>
+                                <td>Callback saat tombol dilepas</td>
+                            </tr>
+                        </table>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre><span class="kw">const</span> left = <span class="kw">new</span> <span class="fn">VirtualButton</span>({
+  text: <span class="str">"<="</span>,
+  left: <span class="num">20</span>,
+  bottom: <span class="num">30</span>,
+  onPress: () => { left.press = <span class="kw">true</span> },
+  onRelease: () => { left.press = <span class="kw">false</span> }
+})
+
+<span class="kw">const</span> right = <span class="kw">new</span> <span class="fn">VirtualButton</span>({
+  text: <span class="str">"=>"</span>,
+  left: <span class="num">100</span>,
+  bottom: <span class="num">30</span>,
+  onPress: () => { right.press = <span class="kw">true</span> },
+  onRelease: () => { right.press = <span class="kw">false</span> }
+})
+
+game.<span class="fn">render</span>(dt => {
+  <span class="kw">if</span> (right.press) {
+    console.<span class="fn">log</span>(<span class="str">"kanan"</span>)
+  } <span class="kw">else if</span> (left.press) {
+    console.<span class="fn">log</span>(<span class="str">"kiri"</span>)
+  }
+})</pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── STEP 3 ── -->
+            <section class="step-section" id="step3">
+                <div class="step-header">
+                    <div class="step-num">03</div>
+                    <div class="step-title-block">
+                        <h2>Load Gambar</h2>
+                        <div class="step-subtitle">
+                            Aset — load texture sebelum game mulai
+                        </div>
+                    </div>
+                </div>
+                <div class="step-body">
+                    <div class="step-body-inner">
+                        <div class="prose">
+                            <p>
+                                Sebelum menampilkan gambar, semua texture harus
+                                di-load terlebih dahulu menggunakan
+                                <code>Aset</code>. Gunakan pattern
+                                <code>*N</code> untuk load beberapa frame
+                                animasi sekaligus.
+                            </p>
+                        </div>
+
+                        <div class="callout callout-tip">
+                            <strong>Wildcard <code>*N</code></strong> —
+                            <code>Run*3.png</code> artinya load
+                            <code>Run1.png</code>, <code>Run2.png</code>,
+                            <code>Run3.png</code> secara otomatis.
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre><span class="kw">const</span> gl = game.gl
+<span class="kw">const</span> renderer = <span class="kw">new</span> <span class="fn">Renderer</span>(gl, canvas)
+
+<span class="kw">const</span> listImg = {
+  run:  { path: <span class="str">"./Art/Run*3.png"</span> },  <span class="cm">// 3 frame animasi</span>
+  wall: { path: <span class="str">"./Art/Wall*1.png"</span> }, <span class="cm">// 1 frame</span>
+}
+
+<span class="kw">const</span> aset = <span class="kw">new</span> <span class="fn">Aset</span>(gl, listImg)
+<span class="kw">let</span> number = <span class="fn">0</span>
+
+<span class="kw">async function</span> <span class="fn">init</span>() {
+  <span class="cm">// tunggu sampai semua gambar selesai dimuat</span>
+  <span class="kw">const</span> texture = <span class="kw">await</span> aset.<span class="fn">load</span>()
+
+  game.<span class="fn">render</span>(dt => {
+    <span class="cm">// game berjalan di sini</span>
+    
+    number ++
+    renderer.<span class="fn">test</span>(<span class="str">number</span>)
+    
+  })
+}
+
+<span class="fn">init</span>()</pre>
+                        </div>
+
+                        <div class="callout callout-warn">
+                            Selalu gunakan <code>async/await</code> saat load
+                            aset. Tanpa ini, gambar bisa hitam karena belum
+                            selesai dimuat.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── STEP 4 ── -->
+            <section class="step-section" id="step4">
+                <div class="step-header">
+                    <div class="step-num">04</div>
+                    <div class="step-title-block">
+                        <h2>Tampilkan Gambar</h2>
+                        <div class="step-subtitle">
+                            Draw — render entitas ke layar
+                        </div>
+                    </div>
+                </div>
+                <div class="step-body">
+                    <div class="step-body-inner">
+                        <div class="prose">
+                            <p>
+                                Semua entitas (player, tembok, dll) menggunakan
+                                format <strong>object of object</strong>. Setiap
+                                entitas memiliki properti posisi, ukuran, dan
+                                gambar.
+                            </p>
+                        </div>
+
+                        <div class="section-sep">properti entitas</div>
+
+                        <div class="concept-grid">
+                            <div class="concept-card">
+                                <div class="cc-label">x / y</div>
+                                <div class="cc-val">posisi</div>
+                                <div class="cc-desc">
+                                    Koordinat di dunia game
+                                </div>
+                            </div>
+                            <div class="concept-card">
+                                <div class="cc-label">width / height</div>
+                                <div class="cc-val">ukuran</div>
+                                <div class="cc-desc">
+                                    Lebar dan tinggi sprite (px)
+                                </div>
+                            </div>
+                            <div class="concept-card">
+                                <div class="cc-label">img</div>
+                                <div class="cc-val">animasi</div>
+                                <div class="cc-desc">Key nama dari listImg</div>
+                            </div>
+                            <div class="concept-card">
+                                <div class="cc-label">speed</div>
+                                <div class="cc-val">kecepatan</div>
+                                <div class="cc-desc">Kecepatan pergerakan</div>
+                            </div>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre><span class="kw">const</span> players = {
+  clientA: { x: <span class="num">150</span>, y: <span class="num">150</span>, width: <span class="num">100</span>, height: <span class="num">100</span>, speed: <span class="num">300</span> }
+}
+
+<span class="kw">const</span> walls = {
+  A: { x: <span class="num">0</span>, y: <span class="num">400</span>, width: <span class="num">100</span>, height: <span class="num">100</span>, img: <span class="str">"wall"</span> }
+}
+
+<span class="kw">const</span> drawPlayer = <span class="kw">new</span> <span class="fn">Draw</span>(players, texture, renderer)
+<span class="kw">const</span> drawWall   = <span class="kw">new</span> <span class="fn">Draw</span>(walls, texture, renderer)
+
+game.<span class="fn">render</span>(dt => {
+  drawPlayer.<span class="fn">update</span>(dt)
+  drawWall.<span class="fn">update</span>(dt)
+
+  <span class="kw">for</span> (<span class="kw">let</span> id <span class="kw">in</span> players) {
+    <span class="kw">let</span> p = players[id]
+    p.img = <span class="str">"run"</span>
+
+    <span class="kw">if</span> (right.press) p.x += <span class="num">5</span>
+    <span class="kw">else if</span> (left.press) p.x -= <span class="num">5</span>
+  }
+})</pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── STEP 5 ── -->
+            <section class="step-section" id="step5">
+                <div class="step-header">
+                    <div class="step-num">05</div>
+                    <div class="step-title-block">
+                        <h2>Kamera</h2>
+                        <div class="step-subtitle">
+                            cameraOn — kamera mengikuti pemain
+                        </div>
+                    </div>
+                </div>
+                <div class="step-body">
+                    <div class="step-body-inner">
+                        <div class="prose">
+                            <p>
+                                Gunakan <code>game.cameraOn()</code> untuk
+                                membuat kamera mengikuti entitas tertentu.
+                                Setelah itu, kirimkan
+                                <code>game.camera</code> ke semua pemanggilan
+                                <code>draw.update()</code>.
+                            </p>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre>game.<span class="fn">render</span>(dt => {
+  <span class="cm">// kamera mengikuti players.clientA</span>
+  game.<span class="fn">cameraOn</span>(players, <span class="str">"clientA"</span>)
+
+  <span class="cm">// teruskan game.camera ke setiap Draw</span>
+  drawPlayer.<span class="fn">update</span>(dt, game.camera)
+  drawWall.<span class="fn">update</span>(dt, game.camera)
+})</pre>
+                        </div>
+
+                        <div class="callout callout-info">
+                            Entitas UI (HUD, tombol, skor)
+                            <strong>tidak perlu</strong> menerima
+                            <code>game.camera</code> agar tetap di posisi layar.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── STEP 6 ── -->
+            <section class="step-section" id="step6">
+                <div class="step-header">
+                    <div class="step-num">06</div>
+                    <div class="step-title-block">
+                        <h2>Game State</h2>
+                        <div class="step-subtitle">
+                            Collision.gameState — kelola scene aktif
+                        </div>
+                    </div>
+                </div>
+                <div class="step-body">
+                    <div class="step-body-inner">
+                        <div class="prose">
+                            <p>
+                                Game state memungkinkan kamu beralih antar scene
+                                seperti <em>menu → play → level2 → shop</em>.
+                                Setiap entitas harus memiliki properti
+                                <code>scene</code> yang sesuai.
+                            </p>
+                        </div>
+
+                        <div class="concept-grid">
+                            <div class="concept-card">
+                                <div class="cc-label">gameState.add()</div>
+                                <div class="cc-val">"play"</div>
+                                <div class="cc-desc">
+                                    Aktifkan state tertentu
+                                </div>
+                            </div>
+                            <div class="concept-card">
+                                <div class="cc-label">scene</div>
+                                <div class="cc-val">"play"</div>
+                                <div class="cc-desc">
+                                    Properti wajib di tiap entitas
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre><span class="kw">const</span> physics = <span class="kw">new</span> <span class="fn">Collision</span>(<span class="num">150</span>)
+physics.gameState.<span class="fn">add</span>(<span class="str">"play"</span>) <span class="cm">// aktifkan state "play"</span>
+
+<span class="kw">const</span> players = {
+  clientA: {
+    x: <span class="num">150</span>, y: <span class="num">150</span>, width: <span class="num">100</span>, height: <span class="num">100</span>,
+    scene: <span class="str">"play"</span>,  <span class="cm">// wajib ada!</span>
+    speed: <span class="num">300</span>
+  }
+}
+
+<span class="cm">// walls dibuat dengan loop</span>
+<span class="kw">const</span> walls = {}
+<span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i < <span class="num">10</span>; i++) {
+  walls[i] = {
+    x: <span class="num">100</span> * i, y: <span class="num">400</span>, width: <span class="num">100</span>, height: <span class="num">100</span>,
+    type: <span class="str">"walls"</span>, img: <span class="str">"wall"</span>, scene: <span class="str">"play"</span>
+  }
+}
+
+<span class="cm">// kirim physics.gameState ke Draw</span>
+<span class="kw">const</span> drawPlayer = <span class="kw">new</span> <span class="fn">Draw</span>(players, texture, renderer, physics.gameState)
+<span class="kw">const</span> drawWall   = <span class="kw">new</span> <span class="fn">Draw</span>(walls, texture, renderer, physics.gameState)</pre>
+                        </div>
+
+                        <div class="callout callout-tip">
+                            Untuk mengganti scene, cukup ubah
+                            <code>physics.gameState.add("menu")</code>. Semua
+                            entitas yang memiliki
+                            <code>scene: "play"</code> akan otomatis tidak
+                            dirender. Penjelasan lebih detail tentang sistem
+                            scene akan dibahas pada STEP terakhir.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── STEP 7 ── -->
+            <section class="step-section" id="step7">
+                <div class="step-header">
+                    <div class="step-num">07</div>
+                    <div class="step-title-block">
+                        <h2>Collision & Gravity</h2>
+                        <div class="step-subtitle">
+                            Physics — tabrakan dan gaya gravitasi
+                        </div>
+                    </div>
+                </div>
+                <div class="step-body">
+                    <div class="step-body-inner">
+                        <div class="prose">
+                            <p>
+                                ADIVA menggunakan sistem physics berbasis
+                                velocity. Gerakan dilakukan lewat
+                                <code>vx</code>/<code>vy</code>, bukan mengubah
+                                posisi langsung.
+                            </p>
+                        </div>
+
+                        <div class="section-sep">properti physics</div>
+
+                        <table class="doc-table">
+                            <tr>
+                                <th>Properti</th>
+                                <th>Keterangan</th>
+                            </tr>
+                            <tr>
+                                <td>vx</td>
+                                <td>Kecepatan horizontal (px/detik)</td>
+                            </tr>
+                            <tr>
+                                <td>vy</td>
+                                <td>Kecepatan vertikal (px/detik)</td>
+                            </tr>
+                            <tr>
+                                <td>gravity</td>
+                                <td>Gaya tarik ke bawah per detik</td>
+                            </tr>
+                            <tr>
+                                <td>speed</td>
+                                <td>Kecepatan maksimal player</td>
+                            </tr>
+                            <tr>
+                                <td>useCollider</td>
+                                <td>Aktifkan collider box custom</td>
+                            </tr>
+                            <tr>
+                                <td>colliderBox</td>
+                                <td>
+                                    Ukuran hitbox — biasanya lebih kecil dari
+                                    sprite
+                                </td>
+                            </tr>
+                        </table>
+
+                        <div class="section-sep">urutan eksekusi</div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre><span class="kw">const</span> physics = <span class="kw">new</span> <span class="fn">Collision</span>(<span class="num">150</span>)
+physics.gameState.<span class="fn">add</span>(<span class="str">"play"</span>)
+physics.grid.<span class="fn">buildStatic</span>(walls) <span class="cm">// daftarkan tembok ke grid</span>
+
+<span class="kw">const</span> players = {
+  clientA: {
+    x: <span class="num">150</span>, y: <span class="num">150</span>, width: <span class="num">100</span>, height: <span class="num">100</span>,
+    scene: <span class="str">"play"</span>, speed: <span class="num">300</span>,
+    gravity: <span class="num">200</span>, vx: <span class="num">0</span>, vy: <span class="num">0</span>,
+    useCollider: <span class="kw">true</span>,
+    colliderBox: { width: <span class="num">40</span>, height: <span class="num">100</span> }
+  }
+}
+
+game.<span class="fn">render</span>(dt => {
+  game.<span class="fn">cameraOn</span>(players, <span class="str">"clientA"</span>)
+  drawPlayer.<span class="fn">update</span>(dt, game.camera)
+  drawWall.<span class="fn">update</span>(dt, game.camera)
+
+  <span class="kw">for</span> (<span class="kw">let</span> id <span class="kw">in</span> players) {
+    <span class="kw">let</span> p = players[id]
+
+    <span class="cm">// 1. set velocity berdasarkan input</span>
+    <span class="kw">if</span> (right.press)      p.vx =  p.speed
+    <span class="kw">else if</span> (left.press)  p.vx = -p.speed
+    <span class="kw">else</span>                  p.vx =  <span class="num">0</span>
+
+    <span class="cm">// 2. terapkan physics & collision</span>
+    physics.<span class="fn">applyPhysics</span>(dt, p)
+
+    <span class="cm">// 3. tambahkan gravitasi</span>
+    p.vy += p.gravity * dt
+  }
+})</pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── STEP 8 ── -->
+            <section class="step-section" id="step8">
+                <div class="step-header">
+                    <div class="step-num">08</div>
+                    <div class="step-title-block">
+                        <h2>Jump & Platformer</h2>
+                        <div class="step-subtitle">
+                            platformerLogic — lompat, double jump, animasi
+                            otomatis
+                        </div>
+                    </div>
+                </div>
+                <div class="step-body">
+                    <div class="step-body-inner">
+                        <div class="prose">
+                            <p>
+                                ADIVA menyediakan
+                                <code>physics.platformerLogic()</code> yang
+                                menangani semua logika platformer secara
+                                otomatis: jump buffering, double jump, deteksi
+                                ground, dan state animasi.
+                            </p>
+                        </div>
+
+                        <div class="concept-grid">
+                            <div class="concept-card">
+                                <div class="cc-label">maxJump</div>
+                                <div class="cc-val">2</div>
+                                <div class="cc-desc">
+                                    Jumlah lompatan (1 = normal, 2 = double
+                                    jump)
+                                </div>
+                            </div>
+                            <div class="concept-card">
+                                <div class="cc-label">jumpPower</div>
+                                <div class="cc-val">450</div>
+                                <div class="cc-desc">
+                                    Kekuatan dorongan ke atas
+                                </div>
+                            </div>
+                            <div class="concept-card">
+                                <div class="cc-label">jumpBufferTimer</div>
+                                <div class="cc-val">auto</div>
+                                <div class="cc-desc">
+                                    Set dari onPress tombol jump
+                                </div>
+                            </div>
+                            <div class="concept-card">
+                                <div class="cc-label">gravity</div>
+                                <div class="cc-val">1000</div>
+                                <div class="cc-desc">
+                                    Tinggi-rendah lompatan
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="section-sep">tombol jump</div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre><span class="kw">const</span> jump = <span class="kw">new</span> <span class="fn">VirtualButton</span>({
+  text: <span class="str">"(^)"</span>,
+  right: <span class="num">40</span>,
+  bottom: <span class="num">80</span>,
+  onPress: () => {
+    <span class="kw">const</span> p = players.clientA
+    p.jumpBufferTimer = p.jumpBufferMax
+  }
+})</pre>
+                        </div>
+
+                        <div class="section-sep">
+                            urutan eksekusi (penting!)
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre><span class="kw">const</span> players = {
+  clientA: {
+    x: <span class="num">150</span>, y: <span class="num">150</span>, width: <span class="num">100</span>, height: <span class="num">100</span>,
+    scene: <span class="str">"play"</span>, speed: <span class="num">300</span>,
+    gravity: <span class="num">1000</span>, vx: <span class="num">0</span>, vy: <span class="num">0</span>,
+    useCollider: <span class="kw">true</span>, colliderBox: { width: <span class="num">40</span>, height: <span class="num">100</span> },
+    maxJump: <span class="num">2</span>, jumpPower: <span class="num">450</span>
+  }
+}
+
+game.<span class="fn">render</span>(dt => {
+  game.<span class="fn">cameraOn</span>(players, <span class="str">"clientA"</span>)
+  drawPlayer.<span class="fn">update</span>(dt, game.camera)
+  drawWall.<span class="fn">update</span>(dt, game.camera)
+
+  <span class="kw">for</span> (<span class="kw">let</span> id <span class="kw">in</span> players) {
+    <span class="kw">let</span> p = players[id]
+
+    <span class="kw">if</span> (right.press)      p.vx =  p.speed
+    <span class="kw">else if</span> (left.press)  p.vx = -p.speed
+    <span class="kw">else</span>                  p.vx =  <span class="num">0</span>
+
+    physics.<span class="fn">applyPhysics</span>(dt, p)    <span class="cm">// ① collision dulu</span>
+    physics.<span class="fn">platformerLogic</span>(dt, p) <span class="cm">// ② logic lompat</span>
+    p.vy += p.gravity * dt           <span class="cm">// ③ gravitasi terakhir</span>
+  }
+})</pre>
+                        </div>
+
+                        <div class="callout callout-warn">
+                            Urutan <code>applyPhysics</code> →
+                            <code>platformerLogic</code> → <code>gravity</code>
+                            <strong>tidak boleh dibalik</strong>. Urutan ini
+                            menentukan apakah jump terdeteksi dengan benar.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── STEP 9 ── -->
+            <section class="step-section" id="step9">
+                <div class="step-header">
+                    <div class="step-num">09</div>
+                    <div class="step-title-block">
+                        <h2>Animasi Otomatis</h2>
+                        <div class="step-subtitle">
+                            baseAnim — state animasi dari platformerLogic
+                        </div>
+                    </div>
+                </div>
+                <div class="step-body">
+                    <div class="step-body-inner">
+                        <div class="prose">
+                            <p>
+                                Setelah
+                                <code>physics.platformerLogic()</code> berjalan,
+                                properti <code>p.state</code> pada entitas
+                                player akan
+                                <strong>diisi otomatis</strong> sesuai kondisi
+                                fisika saat itu — tanpa perlu kamu atur secara
+                                manual.
+                            </p>
+                            <p>
+                                Yang perlu kamu lakukan hanyalah memetakan
+                                <code>p.state</code> ke nama animasi lewat objek
+                                <code>baseAnim</code>, lalu assign ke
+                                <code>p.img</code>. Hapus semua baris
+                                <code>p.img = "run"</code> yang statis dari step
+                                sebelumnya.
+                            </p>
+                        </div>
+
+                        <div class="section-sep">
+                            state yang dihasilkan otomatis
+                        </div>
+
+                        <div class="state-flow">
+                            <span class="state-pill idle">idle</span>
+                            <span class="state-arrow">→</span>
+                            <span class="state-pill run">run</span>
+                            <span class="state-arrow">→</span>
+                            <span class="state-pill jump">jump</span>
+                            <span class="state-arrow">→</span>
+                            <span class="state-pill fall">fall</span>
+                        </div>
+
+                        <table class="doc-table">
+                            <tr>
+                                <th>p.state</th>
+                                <th>Kondisi</th>
+                            </tr>
+                            <tr>
+                                <td>idle</td>
+                                <td>
+                                    Di tanah, tidak bergerak horizontal (vx = 0)
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>run</td>
+                                <td>Di tanah, bergerak ke kiri atau kanan</td>
+                            </tr>
+                            <tr>
+                                <td>jump</td>
+                                <td>Di udara, bergerak ke atas (vy &lt; 0)</td>
+                            </tr>
+                            <tr>
+                                <td>fall</td>
+                                <td>Di udara, bergerak ke bawah (vy &gt; 0)</td>
+                            </tr>
+                        </table>
+
+                        <div class="section-sep">setup listImg & baseAnim</div>
+
+                        <div class="prose">
+                            <p>
+                                Daftarkan semua animasi di
+                                <code>listImg</code> — termasuk
+                                <code>idle</code>, <code>jump</code>, dan
+                                <code>fall</code> yang sebelumnya belum ada.
+                                Kemudian buat objek
+                                <code>baseAnim</code> sebagai peta dari nama
+                                state ke key animasi.
+                            </p>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre><span class="kw">const</span> listImg = {
+  run:  { path: <span class="str">"./Art/Run*3.png"</span>  },
+  idle: { path: <span class="str">"./Art/Idle*3.png"</span> },
+  jump: { path: <span class="str">"./Art/Jump*2.png"</span> },
+  fall: { path: <span class="str">"./Art/Fall*2.png"</span> },
+  wall: { path: <span class="str">"./Art/Walll*1.png"</span> },
+}
+
+<span class="cm">// peta state → key animasi</span>
+<span class="kw">const</span> baseAnim = {
+  idle: <span class="str">"idle"</span>,
+  run:  <span class="str">"run"</span>,
+  jump: <span class="str">"jump"</span>,
+  fall: <span class="str">"fall"</span>,
+}</pre>
+                        </div>
+
+                        <div class="callout callout-info">
+                            Key di <code>baseAnim</code> harus sama persis
+                            dengan nilai <code>p.state</code> yang dihasilkan
+                            <code>platformerLogic</code>. Value-nya adalah key
+                            dari <code>listImg</code>.
+                        </div>
+
+                        <div class="section-sep">pakai di game loop</div>
+
+                        <div class="prose">
+                            <p>
+                                Di dalam loop, hapus
+                                <code>p.img = "run"</code> yang statis. Gantikan
+                                dengan satu baris yang membaca
+                                <code>p.state</code> secara dinamis lewat
+                                <code>baseAnim</code>.
+                            </p>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre>game.<span class="fn">render</span>(dt => {
+  game.<span class="fn">cameraOn</span>(players, <span class="str">"clientA"</span>)
+  drawPlayer.<span class="fn">update</span>(dt, game.camera)
+  drawWall.<span class="fn">update</span>(dt, game.camera)
+
+  <span class="kw">for</span> (<span class="kw">let</span> id <span class="kw">in</span> players) {
+    <span class="kw">let</span> p = players[id]
+
+    <span class="kw">if</span> (right.press)      p.vx =  p.speed
+    <span class="kw">else if</span> (left.press)  p.vx = -p.speed
+    <span class="kw">else</span>                  p.vx =  <span class="num">0</span>
+
+    physics.<span class="fn">applyPhysics</span>(dt, p)    <span class="cm">// ① collision</span>
+    physics.<span class="fn">platformerLogic</span>(dt, p) <span class="cm">// ② p.state diisi otomatis</span>
+    p.vy += p.gravity * dt           <span class="cm">// ③ gravitasi</span>
+
+    <span class="cm">// ④ terapkan animasi berdasarkan state otomatis</span>
+    p.img = baseAnim[p.state]
+  }
+})</pre>
+                        </div>
+
+                        <div class="callout callout-tip">
+                            <strong>Satu baris ajaib:</strong>
+                            <code>p.img = baseAnim[p.state]</code> — inilah inti
+                            dari step ini. <code>platformerLogic</code> mengisi
+                            <code>p.state</code>, kamu hanya perlu membacanya.
+                        </div>
+
+                        <div class="section-sep">perubahan dari step 8</div>
+
+                        <div class="concept-grid">
+                            <div class="concept-card">
+                                <div class="cc-label">Dihapus</div>
+                                <div
+                                    class="cc-val"
+                                    style="color: var(--accent2)"
+                                >
+                                    p.img = "run"
+                                </div>
+                                <div class="cc-desc">
+                                    Baris statis ini diganti sepenuhnya — tidak
+                                    relevan lagi
+                                </div>
+                            </div>
+                            <div class="concept-card">
+                                <div class="cc-label">Ditambahkan</div>
+                                <div class="cc-val">baseAnim</div>
+                                <div class="cc-desc">
+                                    Objek peta state → animasi, dibuat sekali di
+                                    luar loop
+                                </div>
+                            </div>
+                            <div class="concept-card">
+                                <div class="cc-label">Ditambahkan</div>
+                                <div class="cc-val">listImg baru</div>
+                                <div class="cc-desc">
+                                    Entry idle, jump, fall ditambahkan ke daftar
+                                    aset
+                                </div>
+                            </div>
+                            <div class="concept-card">
+                                <div class="cc-label">Hasil</div>
+                                <div
+                                    class="cc-val"
+                                    style="color: var(--accent)"
+                                >
+                                    Animasi hidup
+                                </div>
+                                <div class="cc-desc">
+                                    Player berganti sprite otomatis sesuai
+                                    gerakan nyata
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── STEP 10 ── -->
+            <section class="step-section" id="step10">
+                <div class="step-header">
+                    <div class="step-num">10</div>
+                    <div class="step-title-block">
+                        <h2>Deteksi Objek (AABB)</h2>
+                        <div class="step-subtitle">
+                            physics.aabb() — mendeteksi tabrakan antar entitas
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step-body">
+                    <div class="step-body-inner">
+                        <div class="prose">
+                            <p>
+                                Pada step ini kita akan memahami
+                                <code>physics.aabb()</code> untuk mendeteksi
+                                apakah dua objek bertabrakan.
+                            </p>
+                            <p>
+                                Contoh paling umum adalah
+                                <strong>player mengambil koin</strong>. Ketika
+                                player menyentuh koin, kita bisa menjalankan
+                                kode tertentu seperti menambah skor atau
+                                menghapus koin.
+                            </p>
+                        </div>
+
+                        <div class="section-sep">konsep utama</div>
+
+                        <table class="doc-table">
+                            <tr>
+                                <th>Fungsi</th>
+                                <th>Keterangan</th>
+                            </tr>
+                            <tr>
+                                <td>physics.aabb()</td>
+                                <td>Mendeteksi tabrakan antar entitas</td>
+                            </tr>
+                            <tr>
+                                <td>type</td>
+                                <td>
+                                    Penanda jenis entitas (coin, enemy, item,
+                                    dll)
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>buildDynamic()</td>
+                                <td>
+                                    Mendaftarkan objek yang bisa bergerak atau
+                                    berubah
+                                </td>
+                            </tr>
+                        </table>
+
+                        <div class="callout callout-info">
+                            <strong>AABB</strong> berarti
+                            <em>Axis-Aligned Bounding Box</em> — metode
+                            collision sederhana menggunakan kotak persegi.
+                        </div>
+
+                        <div class="section-sep">membuat objek koin</div>
+
+                        <div class="prose">
+                            <p>
+                                Kita buat objek koin seperti entitas lain,
+                                tetapi wajib memiliki properti
+                                <code>type</code>. Properti ini digunakan oleh
+                                <code>physics.aabb()</code> untuk mengenali
+                                objek.
+                            </p>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre><span class="kw">const</span> coin = {
+  coin1: {
+    x: <span class="num">250</span>,
+    y: <span class="num">200</span>,
+    width: <span class="num">100</span>,
+    height: <span class="num">100</span>,
+
+    <span class="cm">// type digunakan untuk physics.aabb()</span>
+    type: <span class="str">"coin"</span>,
+
+    img: <span class="str">"coin"</span>,
+    scene: <span class="str">"play"</span>
+  }
+}</pre>
+                        </div>
+
+                        <div class="section-sep">daftarkan ke physics grid</div>
+
+                        <div class="prose">
+                            <p>
+                                Objek seperti koin harus didaftarkan ke
+                                <code>physics.grid.buildDynamic()</code> di
+                                setiap frame.
+                            </p>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre>game.<span class="fn">render</span>(dt => {
+
+  <span class="cm">// WAJIB di awal render</span>
+  physics.grid.<span class="fn">buildDynamic</span>(coin)
+
+  game.<span class="fn">cameraOn</span>(players, <span class="str">"clientA"</span>)
+
+  drawPlayer.<span class="fn">update</span>(dt, game.camera)
+  drawWall.<span class="fn">update</span>(dt, game.camera)
+  drawCoin.<span class="fn">update</span>(dt, game.camera)
+
+})</pre>
+                        </div>
+
+                        <div class="callout callout-warn">
+                            <strong>buildDynamic()</strong> harus dipanggil
+                            setiap frame. Jika tidak, collision tidak akan
+                            terdeteksi.
+                        </div>
+
+                        <div class="section-sep">
+                            deteksi tabrakan player dan koin
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre>physics.<span class="fn">aabb</span>(
+  players,
+  <span class="str">"coin"</span>, <span class="cm">// type yang ingin dicek</span>
+  (g1, g2) => {
+
+    <span class="cm">// g1 = player</span>
+    <span class="cm">// g2 = objek yang bertabrakan (coin)</span>
+
+    renderer.<span class="fn">test</span>(<span class="str">`${g2.type} berhasil diambil`</span>)
+    <span class="cm">// maka akan muncul tulisan berwarna hijau</span>
+    <span class="cm">//  "coin berhasil diambil"</span>
+  }
+)</pre>
+                        </div>
+
+                        <div class="section-sep">alur collision</div>
+
+                        <div class="state-flow">
+                            <span class="state-pill run">player</span>
+                            <span class="state-arrow">→</span>
+                            <span class="state-pill idle">menyentuh</span>
+                            <span class="state-arrow">→</span>
+                            <span class="state-pill jump">coin</span>
+                            <span class="state-arrow">→</span>
+                            <span class="state-pill fall">callback()</span>
+                        </div>
+
+                        <div class="callout callout-tip">
+                            Setelah koin terdeteksi, kamu bisa langsung
+                            menjalankan logika seperti
+                            <strong
+                                >menambah skor, memainkan suara, atau menghapus
+                                koin</strong
+                            >.
+                        </div>
+
+                        <div class="section-sep">ringkasan step 10</div>
+
+                        <div class="prose">
+                            <ul>
+                                <li>
+                                    Setiap entitas interaktif harus memiliki
+                                    <code>type</code>.
+                                </li>
+                                <li>
+                                    Daftarkan objek dinamis ke
+                                    <code>physics.grid.buildDynamic()</code>.
+                                </li>
+                                <li>
+                                    Gunakan <code>physics.aabb()</code> untuk
+                                    mendeteksi tabrakan.
+                                </li>
+                                <li>
+                                    Gunakan callback <code>(g1, g2)</code> untuk
+                                    menjalankan logika saat collision.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── STEP 11 ── -->
+            <section class="step-section" id="step11">
+                <div class="step-header">
+                    <div class="step-num">11</div>
+                    <div class="step-title-block">
+                        <h2>Memutar Audio</h2>
+                        <div class="step-subtitle">
+                            Aset.play() — memainkan sound effect di game
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step-body">
+                    <div class="step-body-inner">
+                        <div class="prose">
+                            <p>
+                                Pada step ini kita akan belajar cara
+                                <strong>memainkan audio di dalam game</strong>.
+                            </p>
+                            <p>
+                                Audio biasanya digunakan untuk memberikan
+                                feedback kepada pemain, seperti ketika
+                                <strong
+                                    >mengambil koin, melompat, atau menyerang
+                                    musuh</strong
+                                >.
+                            </p>
+                        </div>
+
+                        <div class="section-sep">konsep utama</div>
+
+                        <table class="doc-table">
+                            <tr>
+                                <th>Fungsi</th>
+                                <th>Keterangan</th>
+                            </tr>
+                            <tr>
+                                <td>Aset</td>
+                                <td>Class yang mengelola gambar dan audio</td>
+                            </tr>
+                            <tr>
+                                <td>listAudio</td>
+                                <td>Daftar file audio yang akan dimuat</td>
+                            </tr>
+                            <tr>
+                                <td>aset.play()</td>
+                                <td>Memainkan audio berdasarkan nama</td>
+                            </tr>
+                            <tr>
+                                <td>utils.timer()</td>
+                                <td>
+                                    Mengatur jeda agar audio tidak diputar
+                                    terlalu cepat
+                                </td>
+                            </tr>
+                        </table>
+
+                        <div class="callout callout-info">
+                            Sistem audio ADIVA menggunakan
+                            <strong>nama key</strong> untuk memanggil suara.
+                            Jadi kita cukup memanggil nama audio tanpa perlu
+                            membuat objek audio baru setiap kali.
+                        </div>
+
+                        <div class="section-sep">membuat daftar audio</div>
+
+                        <div class="prose">
+                            <p>
+                                Pertama kita buat daftar audio yang ingin
+                                digunakan di game.
+                            </p>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre><span class="kw">const</span> listAudio = {
+  coin: <span class="str">"./Audio/Coin.mp3"</span>
+}</pre>
+                        </div>
+
+                        <div class="section-sep">
+                            memasukkan audio ke class Aset
+                        </div>
+
+                        <div class="prose">
+                            <p>
+                                Audio dimasukkan ke parameter kedua saat membuat
+                                objek <code>Aset</code>.
+                            </p>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre><span class="kw">const</span> aset = <span class="kw">new</span> Aset(gl, listImg, listAudio)</pre>
+                        </div>
+
+                        <div class="callout callout-warn">
+                            Pastikan nama audio di <code>listAudio</code> sama
+                            dengan nama yang dipanggil di
+                            <code>aset.play()</code>.
+                        </div>
+
+                        <div class="section-sep">memutar audio</div>
+
+                        <div class="prose">
+                            <p>
+                                Untuk memainkan suara, gunakan fungsi
+                                <code>aset.play()</code>.
+                            </p>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre>aset.<span class="fn">play</span>(<span class="str">"coin"</span>)</pre>
+                        </div>
+
+                        <div class="section-sep">
+                            audio saat player mengambil koin
+                        </div>
+
+                        <div class="prose">
+                            <p>
+                                Kita bisa memutar audio ketika player
+                                bertabrakan dengan koin menggunakan
+                                <code>physics.aabb()</code>.
+                            </p>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre>physics.<span class="fn">aabb</span>(
+  players,
+  <span class="str">"coin"</span>,
+  (g1, g2) => {
+
+    renderer.<span class="fn">test</span>(<span class="str">`${g2.type} berhasil diambil`</span>)
+
+    utils.<span class="fn">timer</span>(dt, <span class="str">"s"</span>, <span class="num">0.3</span>, () => {
+      aset.<span class="fn">play</span>(<span class="str">"coin"</span>)
+    })
+
+  }
+)</pre>
+                        </div>
+
+                        <div class="callout callout-tip">
+                            <strong>utils.timer()</strong> digunakan agar suara
+                            tidak diputar terlalu cepat setiap frame. Dengan
+                            jeda ini audio terdengar lebih natural.
+                        </div>
+
+                        <div class="section-sep">alur audio di game</div>
+
+                        <div class="state-flow">
+                            <span class="state-pill run">player</span>
+                            <span class="state-arrow">→</span>
+                            <span class="state-pill idle">menyentuh</span>
+                            <span class="state-arrow">→</span>
+                            <span class="state-pill jump">coin</span>
+                            <span class="state-arrow">→</span>
+                            <span class="state-pill fall">aset.play()</span>
+                        </div>
+
+                        <div class="section-sep">ringkasan step 11</div>
+
+                        <div class="prose">
+                            <ul>
+                                <li>
+                                    Buat daftar audio di <code>listAudio</code>.
+                                </li>
+                                <li>
+                                    Masukkan daftar audio ke class
+                                    <code>Aset</code>.
+                                </li>
+                                <li>
+                                    Gunakan <code>aset.play()</code> untuk
+                                    memutar suara.
+                                </li>
+                                <li>
+                                    Gunakan <code>utils.timer()</code> agar
+                                    audio tidak diputar setiap frame.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── STEP 12 ── -->
+            <section class="step-section" id="step12">
+                <div class="step-header">
+                    <div class="step-num">12</div>
+                    <div class="step-title-block">
+                        <h2>Membuat Level 2</h2>
+                        <div class="step-subtitle">
+                            Berpindah dari scene play ke play2 menggunakan flag
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step-body">
+                    <div class="step-body-inner">
+                        <div class="prose">
+                            <p>
+                                Pada step ini kita akan membuat
+                                <strong>level kedua</strong>.
+                            </p>
+                            <p>
+                                Ketika player menyentuh
+                                <strong>flag (bendera)</strong>, maka game akan
+                                berpindah dari <strong>scene play</strong> ke
+                                <strong>scene play2</strong>.
+                            </p>
+
+                            <p>
+                                Pada step ini juga ada beberapa perubahan
+                                penting:
+                            </p>
+
+                            <ul>
+                                <li>
+                                    Menambahkan <strong>gambar flag</strong>.
+                                </li>
+                                <li>
+                                    Menambahkan
+                                    <strong
+                                        >gambar wall baru untuk level 2</strong
+                                    >.
+                                </li>
+                                <li>
+                                    Membuat
+                                    <strong>iterasi wall level kedua</strong>.
+                                </li>
+                                <li>
+                                    Membuat
+                                    <strong
+                                        >object flag sebagai pemicu
+                                        level</strong
+                                    >.
+                                </li>
+                                <li>
+                                    Mengubah
+                                    <strong>gameState dari play ke play2</strong
+                                    >.
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="section-sep">konsep utama</div>
+
+                        <table class="doc-table">
+                            <tr>
+                                <th>Konsep</th>
+                                <th>Keterangan</th>
+                            </tr>
+                            <tr>
+                                <td>scene</td>
+                                <td>
+                                    Menentukan object muncul pada level tertentu
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>gameState</td>
+                                <td>Menyimpan scene yang sedang aktif</td>
+                            </tr>
+                            <tr>
+                                <td>flag</td>
+                                <td>Object pemicu perpindahan level</td>
+                            </tr>
+                            <tr>
+                                <td>physics.aabb()</td>
+                                <td>Mendeteksi tabrakan player dengan flag</td>
+                            </tr>
+                        </table>
+
+                        <div class="callout callout-info">
+                            Sistem scene ADIVA bekerja dengan cara
+                            <strong
+                                >memfilter object berdasarkan property
+                                scene</strong
+                            >. Jika scene object sama dengan gameState aktif,
+                            maka object tersebut akan dirender.
+                        </div>
+
+                        <div class="section-sep">menambahkan gambar baru</div>
+
+                        <div class="prose">
+                            <p>
+                                Pada step ini kita menambahkan dua gambar baru:
+                            </p>
+
+                            <ul>
+                                <li>
+                                    <strong>flag</strong> → penanda akhir level
+                                </li>
+                                <li>
+                                    <strong>wallB</strong> → tembok khusus untuk
+                                    level kedua
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre>
+const listImg = {
+
+  run : {path : "./Art/Run*3.png"},
+  idle : {path : "./Art/Idle*3.png"},
+  jump : {path : "./Art/Jump*2.png"},
+  fall : {path : "./Art/Fall*2.png"},
+
+  coin : {path : "./Art/Coin*1.png"},
+  wall : {path : "./Art/Wall*1.png"},
+
+  flag : {path : "./Art/Flag*1.png"},
+  wallB : {path : "./Art/WallB*1.png"}
+
+}</pre
+                            >
+                        </div>
+
+                        <div class="section-sep">membuat wall level 2</div>
+
+                        <div class="prose">
+                            <p>Level kedua juga memiliki tembok sendiri.</p>
+
+                            <p>
+                                Kita membuatnya menggunakan
+                                <strong>perulangan (loop)</strong> seperti level
+                                pertama, tetapi dengan
+                                <code>scene : "play2"</code>.
+                            </p>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre>
+for(let i = 0; i &lt; 10; i++){
+
+  walls[i + "level2"] = {
+    x: 100 * i,
+    y: 300,
+    width: 100,
+    height: 100,
+    type :"walls",
+    img : "wallB",
+    scene: "play2"
+  }
+
+}</pre
+                            >
+                        </div>
+
+                        <div class="callout callout-tip">
+                            Perbedaan utama level 1 dan level 2 hanya pada
+                            <strong>scene</strong> dan
+                            <strong>gambar tembok</strong>.
+                        </div>
+
+                        <div class="section-sep">membuat object flag</div>
+
+                        <div class="prose">
+                            <p>
+                                Flag berfungsi sebagai
+                                <strong>penanda akhir level</strong>.
+                            </p>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre>
+const flag = {
+
+  flag1 : {
+    x: 900,
+    y: 200,
+    width: 100,
+    height: 100,
+    type :"flag",
+    img : "flag",
+    scene: "play"
+  }
+
+}</pre
+                            >
+                        </div>
+
+                        <div class="section-sep">menampilkan flag</div>
+
+                        <div class="prose">
+                            <p>
+                                Flag harus dirender menggunakan class
+                                <code>Draw</code>.
+                            </p>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre>
+const drawFlag = new Draw(flag, texture, renderer, physics.gameState)</pre
+                            >
+                        </div>
+
+                        <div class="prose">
+                            <p>Lalu update di dalam game loop.</p>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre>drawFlag.update(dt, game.camera)</pre>
+                        </div>
+
+                        <div class="section-sep">
+                            flag sebagai object dynamic
+                        </div>
+
+                        <div class="prose">
+                            <p>
+                                Agar collision bisa mendeteksi flag, kita harus
+                                menambahkannya ke <code>buildDynamic()</code>.
+                            </p>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre>physics.grid.buildDynamic(coin, flag)</pre>
+                        </div>
+
+                        <div class="section-sep">
+                            deteksi player menyentuh flag
+                        </div>
+
+                        <div class="prose">
+                            <p>Ketika player menyentuh flag, kita akan:</p>
+
+                            <ul>
+                                <li>
+                                    Mengubah scene dari <strong>play</strong> ke
+                                    <strong>play2</strong>
+                                </li>
+                                <li>Mengubah scene player</li>
+                                <li>Mereset posisi player</li>
+                            </ul>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">JavaScript</span>
+                                <button
+                                    class="copy-btn"
+                                    onclick="copyCode(this)"
+                                >
+                                    copy
+                                </button>
+                            </div>
+                            <pre>
+physics.aabb(players, "flag", (g1, g2)=>{
+
+  physics.gameState.delete("play")
+  physics.gameState.add("play2")
+
+  g1.scene = "play2"
+
+  g1.x = g1.originalX
+  g1.y = g1.originalY
+
+})</pre
+                            >
+                        </div>
+
+                        <div class="section-sep">alur perpindahan level</div>
+
+                        <div class="state-flow">
+                            <span class="state-pill run">player</span>
+                            <span class="state-arrow">→</span>
+                            <span class="state-pill idle">menyentuh</span>
+                            <span class="state-arrow">→</span>
+                            <span class="state-pill jump">flag</span>
+                            <span class="state-arrow">→</span>
+                            <span class="state-pill fall">play2</span>
+                        </div>
+
+                        <div class="section-sep">ringkasan step 12</div>
+
+                        <div class="prose">
+                            <ul>
+                                <li>
+                                    Menambahkan gambar <code>flag</code> dan
+                                    <code>wallB</code>.
+                                </li>
+                                <li>Membuat wall baru untuk level kedua.</li>
+                                <li>
+                                    Membuat object flag sebagai penanda akhir
+                                    level.
+                                </li>
+                                <li>
+                                    Mendeteksi tabrakan menggunakan
+                                    <code>physics.aabb()</code>.
+                                </li>
+                                <li>
+                                    Mengubah scene dari <code>play</code> ke
+                                    <code>play2</code>.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="footer">
+                <span class="f-accent">ADIVA</span>
+                <span class="f-blue">Script Engine</span> Documentation · ©
+                2026 <span class="f-red">Lucky Wahyu Kristanto</span>
+                <br />
+                <span class="donate"
+                    >☕ Support development via DANA: 0895-3681-79272</span
+                >
+            </div>
+        </main>
+
+        <script>
+            // ── progress bar ──
+            const pbar = document.getElementById("pbar");
+            window.addEventListener("scroll", () => {
+                const s = document.documentElement;
+                const pct =
+                    (s.scrollTop / (s.scrollHeight - s.clientHeight)) * 100;
+                pbar.style.width = pct + "%";
+            });
+
+            // ── mobile sidebar ──
+            const sidebar = document.getElementById("sidebar");
+            const overlay = document.getElementById("overlay");
+            const hamBtn = document.getElementById("hamBtn");
+
+            hamBtn.addEventListener("click", () => {
+                sidebar.classList.toggle("open");
+                overlay.classList.toggle("open");
+            });
+
+            overlay.addEventListener("click", () => {
+                sidebar.classList.remove("open");
+                overlay.classList.remove("open");
+            });
+
+            sidebar.querySelectorAll(".nav-link").forEach(link => {
+                link.addEventListener("click", () => {
+                    sidebar.classList.remove("open");
+                    overlay.classList.remove("open");
+                });
+            });
+
+            // ── active nav ──
+            const sections = document.querySelectorAll(".step-section");
+            const navLinks = document.querySelectorAll(".nav-link");
+
+            const obs = new IntersectionObserver(
+                entries => {
+                    entries.forEach(e => {
+                        if (e.isIntersecting) {
+                            navLinks.forEach(l => l.classList.remove("active"));
+                            const match = document.querySelector(
+                                `.nav-link[href="#${e.target.id}"]`
+                            );
+                            if (match) match.classList.add("active");
+                        }
+                    });
+                },
+                { threshold: 0.4 }
+            );
+
+            sections.forEach(s => obs.observe(s));
+
+            // ── copy code ──
+            function copyCode(btn) {
+                const pre = btn.closest(".code-block").querySelector("pre");
+                navigator.clipboard.writeText(pre.innerText).then(() => {
+                    btn.textContent = "copied!";
+                    setTimeout(() => (btn.textContent = "copy"), 2000);
+                });
+            }
+        </script>
+    </body>
+</html>
