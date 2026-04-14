@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Adiva Editor</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0d0d0f; --panel: #16161a; --panel2: #1e1e24; --border: #2a2a35;
+  --accent: #00e5ff; --accent2: #ff3d71; --accent3: #a8ff3e;
+  --text: #e8e8f0; --muted: #5a5a72; --radius: 8px;
+}
+html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: 'Space Mono', monospace; }
+#canvas { display: block; position: absolute; top: 0; left: 0; cursor: crosshair; }
+
+#leftPanel {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 260px;
+  background: var(--panel); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; z-index: 100;
+  transition: transform 0.25s cubic-bezier(.4,0,.2,1);
+}
+#leftPanel.collapsed { transform: translateX(-230px); }
+#panelToggle {
+  position: absolute; right: -14px; top: 50%; transform: translateY(-50%);
+  width: 14px; height: 60px; background: var(--panel); border: 1px solid var(--border);
+  border-left: none; border-radius: 0 6px 6px 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: var(--muted); z-index: 200;
+}
+#leftPanel.collapsed #panelToggle { right: -44px; border-radius: 0 8px 8px 0; }
+
+.panel-header { padding: 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+.panel-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 15px; letter-spacing: 0.05em; color: var(--accent); }
+.panel-badge { background: var(--accent); color: #000; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+
+.panel-body { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.panel-body::-webkit-scrollbar { width: 4px; }
+.panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.section-label { font-size: 9px; letter-spacing: 0.15em; color: var(--muted); text-transform: uppercase; padding: 6px 0 4px; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; }
+.field input, .field select, .field textarea {
+  background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+  padding: 7px 9px; border-radius: var(--radius); font-family: 'Space Mono', monospace;
+  font-size: 11px; outline: none; transition: border-color 0.15s;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+.field select option { background: var(--panel2); }
+.field textarea { resize: none; height: 50px; }
+
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.color-row { display: flex; flex-wrap: wrap; gap: 5px; }
+.swatch { width: 26px; height: 26px; border-radius: 5px; cursor: pointer; border: 2px solid transparent; transition: transform 0.1s, border-color 0.1s; }
+.swatch:hover { transform: scale(1.1); }
+.swatch.active { border-color: white; }
+
+.tool-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.tool-btn {
+  background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+  padding: 8px 4px; border-radius: var(--radius); cursor: pointer; text-align: center;
+  font-size: 9px; font-family: 'Space Mono', monospace; transition: all 0.15s;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.tool-btn .icon { font-size: 16px; }
+.tool-btn:hover { background: var(--border); }
+.tool-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+.action-btn {
+  width: 100%; padding: 9px; border-radius: var(--radius); cursor: pointer;
+  font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700;
+  border: 1px solid; transition: all 0.15s; letter-spacing: 0.05em;
+}
+.btn-danger { background: transparent; color: var(--accent2); border-color: var(--accent2); }
+.btn-danger:hover { background: var(--accent2); color: white; }
+.btn-success { background: var(--accent3); color: #000; border-color: var(--accent3); }
+.btn-success:hover { opacity: 0.85; }
+.btn-primary { background: var(--accent); color: #000; border-color: var(--accent); }
+.btn-primary:hover { opacity: 0.85; }
+.btn-neutral { background: transparent; color: var(--text); border-color: var(--border); }
+.btn-neutral:hover { background: var(--border); }
+
+#topBar {
+  position: absolute; top: 0; left: 260px; right: 0; height: 44px;
+  background: var(--panel); border-bottom: 1px solid var(--border);
+  z-index: 99; display: flex; align-items: center; gap: 0; overflow: hidden;
+}
+.tb-item {
+  padding: 0 14px; height: 100%; display: flex; align-items: center; gap: 6px;
+  border-right: 1px solid var(--border); font-size: 11px; color: var(--muted);
+  cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.tb-item:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+.tb-item span { color: var(--accent); font-weight: 700; }
+.tb-sep { flex: 1; }
+.tb-coords { padding: 0 14px; font-size: 10px; color: var(--muted); font-family: 'Space Mono'; }
+
+#statusBar {
+  position: absolute; bottom: 0; left: 260px; right: 0; height: 28px;
+  background: var(--panel); border-top: 1px solid var(--border);
+  z-index: 99; display: flex; align-items: center; padding: 0 12px; gap: 16px;
+  font-size: 10px; color: var(--muted);
+}
+.st-val { color: var(--text); }
+
+#modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 9999;
+  display: none; align-items: center; justify-content: center;
+}
+#modal.open { display: flex; }
+#modalBox { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; width: 420px; max-width: 95vw; overflow: hidden; }
+#modalHeader { padding: 16px 20px; border-bottom: 1px solid var(--border); font-family: 'Syne'; font-size: 14px; font-weight: 700; }
+#modalBody { padding: 20px; display: flex; flex-direction: column; gap: 12px; max-height: 70vh; overflow-y: auto; }
+#modalFooter { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+#notify {
+  position: fixed; bottom: 44px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+  padding: 8px 18px; border-radius: 20px; font-size: 11px; pointer-events: none;
+  opacity: 0; transition: all 0.3s; z-index: 99999;
+}
+#notify.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+#canvasWrap { position: absolute; top: 44px; bottom: 28px; left: 260px; right: 0; overflow: hidden; }
+#zoomCtrl { position: absolute; bottom: 10px; left: 10px; display: flex; flex-direction: column; gap: 4px; }
+.zoom-btn {
+  width: 32px; height: 32px; background: var(--panel2); border: 1px solid var(--border);
+  color: var(--text); border-radius: 6px; cursor: pointer; font-size: 16px;
+  display: flex; align-items: center; justify-content: center; transition: background 0.15s;
+}
+.zoom-btn:hover { background: var(--border); }
+</style>
+</head>
+<body>
+
+<div id="leftPanel">
+  <div id="panelToggle">◀</div>
+  <div class="panel-header">
+    <div class="panel-title">ADIVA EDITOR</div>
+    <div class="panel-badge" id="objCount">0</div>
+  </div>
+  <div class="panel-body">
+
+    <div class="section-label">Tool</div>
+    <div class="tool-row">
+      <button class="tool-btn active" data-tool="place" onclick="setTool('place')">
+        <span class="icon">✏️</span>Place
+      </button>
+      <button class="tool-btn" data-tool="select" onclick="setTool('select')">
+        <span class="icon">🖱️</span>Select
+      </button>
+      <button class="tool-btn" data-tool="erase" onclick="setTool('erase')">
+        <span class="icon">🗑️</span>Erase
+      </button>
+      <button class="tool-btn" data-tool="move" onclick="setTool('move')">
+        <span class="icon">✋</span>Pan
+      </button>
+    </div>
+
+    <div class="section-label">Object Type</div>
+    <div class="field">
+      <input id="ui_type" value="wall" placeholder="e.g. wall, floor, door...">
+    </div>
+
+    <div class="section-label">Properties</div>
+    <div class="row2">
+      <div class="field">
+        <label>SCENE</label>
+        <input id="ui_scene" value="1" placeholder="1">
+      </div>
+      <div class="field">
+        <label>IMG KEY</label>
+        <input id="ui_img" value="wall" placeholder="wall">
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>HP</label>
+        <input id="ui_hp" type="number" value="100">
+      </div>
+      <div class="field">
+        <label>INFO</label>
+        <input id="ui_info" value="def">
+      </div>
+    </div>
+
+    <div class="section-label">Size (in grid cells)</div>
+    <div class="row2">
+      <div class="field">
+        <label>WIDTH</label>
+        <input id="ui_gridRight" type="number" value="1" min="1" max="20">
+      </div>
+      <div class="field">
+        <label>HEIGHT</label>
+        <input id="ui_gridBottom" type="number" value="1" min="1" max="20">
+      </div>
+    </div>
+
+    <div class="section-label">Color</div>
+    <div class="color-row" id="colorRow"></div>
+    <div class="field">
+      <input type="color" id="customColor" value="#ffcc00" style="height:32px;padding:2px 4px;cursor:pointer;">
+    </div>
+
+    <div class="section-label">ID Mode</div>
+    <div class="field">
+      <select id="ui_id">
+        <option value="uuid">UUID (auto)</option>
+        <option value="letter">Letter (A,B,C...)</option>
+        <option value="number">Number (1,2,3...)</option>
+        <option value="custom">Custom prefix</option>
+      </select>
+    </div>
+    <div class="field" id="customIdField" style="display:none">
+      <label>PREFIX</label>
+      <input id="ui_id_prefix" placeholder="e.g. wall_" value="obj_">
+    </div>
+
+    <div class="section-label">Actions</div>
+    <button class="action-btn btn-neutral" onclick="clearAll()">🗑️ Clear All</button>
+    <button class="action-btn btn-success" onclick="exportJSON()">📤 Export JSON</button>
+
+  </div>
+</div>
+
+<div id="topBar">
+  <div class="tb-item" onclick="toggleGrid()">⊞ Grid <span id="gridToggleLabel">ON</span></div>
+  <div class="tb-item" onclick="toggleSnap()">🧲 Snap <span id="snapLabel">ON</span></div>
+  <div class="tb-item" onclick="resetCamera()">🎯 Reset Cam</div>
+
+  <div class="tb-sep"></div>
+  <div class="tb-coords" id="tbCoords">x: 0 y: 0</div>
+</div>
+
+<div id="statusBar">
+  <span>TOOL: <span class="st-val" id="st_tool">PLACE</span></span>
+  <span>OBJECTS: <span class="st-val" id="st_count">0</span></span>
+  <span>CAM: <span class="st-val" id="st_cam">0, 0</span></span>
+  <span>ZOOM: <span class="st-val" id="st_zoom">100%</span></span>
+  <span>SCENE: <span class="st-val" id="st_scene">1</span></span>
+</div>
+
+<div id="canvasWrap">
+  <canvas id="canvas"></canvas>
+  <div id="zoomCtrl">
+    <button class="zoom-btn" onclick="zoomIn()">+</button>
+    <button class="zoom-btn" onclick="zoomOut()">−</button>
+    <button class="zoom-btn" style="font-size:11px" onclick="zoomReset()">1:1</button>
+  </div>
+</div>
+
+<div id="modal">
+  <div id="modalBox">
+    <div id="modalHeader">Edit Object</div>
+    <div id="modalBody"></div>
+    <div id="modalFooter">
+      <button class="action-btn btn-neutral" style="width:80px" onclick="closeModal()">Cancel</button>
+      <button class="action-btn btn-primary" style="width:80px" onclick="saveModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="notify"></div>
+
+<script>
+/* ═══ STATE ═══ */
+const ls = localStorage;
+let dataLS = JSON.parse(ls.getItem("dataAdvCreateWorld") || "{}");
+
+let tool = "place";
+let showGrid = true;
+let snapToGrid = true;
+let currentColor = "#ffcc00";
+let selectedId = null;
+let editingId = null;
+
+let camX = 0, camY = 0;
+let zoom = 1;
+let isPanning = false;
+let lastDrag = { x: 0, y: 0 };
+
+const GRID = 80;
+let autoIndex = 0;
+const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+/* ═══ CANVAS SETUP ═══ */
+const wrap = document.getElementById("canvasWrap");
+const canvas = document.getElementById("canvas");
+const c = canvas.getContext("2d");
+
+function resizeCanvas() {
+  canvas.width = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
+/* ═══ COLORS ═══ */
+const PALETTE = [
+  "#ff4757","#ffa502","#ffdd59","#2ed573","#1e90ff",
+  "#a29bfe","#fd79a8","#00cec9","#6c5ce7","#e17055",
+  "#b2bec3","#2d3436","#ffffff","#74b9ff","#55efc4"
+];
+
+function initColors() {
+  const row = document.getElementById("colorRow");
+  PALETTE.forEach(col => {
+    const sw = document.createElement("div");
+    sw.className = "swatch" + (col === currentColor ? " active" : "");
+    sw.style.background = col;
+    sw.onclick = () => {
+      currentColor = col;
+      document.getElementById("customColor").value = col;
+      document.querySelectorAll(".swatch").forEach(s => s.classList.remove("active"));
+      sw.classList.add("active");
+    };
+    row.appendChild(sw);
+  });
+  document.getElementById("customColor").addEventListener("input", e => {
+    currentColor = e.target.value;
+    document.querySelectorAll(".swatch").forEach(s => s.classList.remove("active"));
+  });
+}
+initColors();
+
+/* ═══ TOOLS ═══ */
+function setTool(t) {
+  tool = t;
+  document.querySelectorAll(".tool-btn").forEach(b => b.classList.toggle("active", b.dataset.tool === t));
+  document.getElementById("st_tool").textContent = t.toUpperCase();
+  canvas.style.cursor = t === "move" ? "grab" : "crosshair";
+}
+
+/* ═══ ID GENERATION ═══ */
+document.getElementById("ui_id").addEventListener("change", e => {
+  document.getElementById("customIdField").style.display = e.target.value === "custom" ? "block" : "none";
+});
+
+function genId() {
+  const mode = document.getElementById("ui_id").value;
+  if (mode === "letter") return LETTERS[autoIndex++ % 26];
+  if (mode === "number") return String(++autoIndex);
+  if (mode === "custom") return document.getElementById("ui_id_prefix").value + (++autoIndex);
+  return crypto.randomUUID().slice(0, 8);
+}
+
+/* ═══ GET CONFIG ═══ */
+function getConfig() {
+  return {
+    type: document.getElementById("ui_type").value || "custom",
+    scene: document.getElementById("ui_scene").value,
+    originalScene: document.getElementById("ui_scene").value,
+    info: document.getElementById("ui_info").value,
+    hp: Number(document.getElementById("ui_hp").value),
+    originalHp: Number(document.getElementById("ui_hp").value),
+    color: currentColor,
+    img: document.getElementById("ui_img").value,
+    gridW: Number(document.getElementById("ui_gridRight").value),
+    gridH: Number(document.getElementById("ui_gridBottom").value),
+  };
+}
+
+/* ═══ SAVE ═══ */
+function save() {
+  ls.setItem("dataAdvCreateWorld", JSON.stringify(dataLS));
+  updateObjCount();
+  updateStatus();
+}
+
+function updateObjCount() {
+  const count = Object.keys(dataLS).length;
+  document.getElementById("objCount").textContent = count;
+  document.getElementById("st_count").textContent = count;
+}
+
+/* ═══ PLACE / ERASE ═══ */
+function placeAt(wx, wy) {
+  const gx = Math.floor(wx / GRID);
+  const gy = Math.floor(wy / GRID);
+  const x = gx * GRID;
+  const y = gy * GRID;
+  const cfg = getConfig();
+
+  const already = Object.values(dataLS).some(b => b.x === x && b.y === y && b.type === cfg.type);
+  if (already) return;
+
+  const id = genId();
+  dataLS[id] = {
+    id, x, y,
+    originalX: x, originalY: y,
+    width: GRID * cfg.gridW,
+    height: GRID * cfg.gridH,
+    originalWidth: GRID * cfg.gridW,
+    originalHeight: GRID * cfg.gridH,
+    ...cfg,
+  };
+  save();
+}
+
+function eraseAt(wx, wy) {
+  const keys = Object.keys(dataLS);
+  for (const k of keys) {
+    const b = dataLS[k];
+    if (wx >= b.x && wx < b.x + b.width && wy >= b.y && wy < b.y + b.height) {
+      delete dataLS[k];
+      if (selectedId === k) selectedId = null;
+      save();
+      return;
+    }
+  }
+}
+
+function selectAt(wx, wy) {
+  const keys = Object.keys(dataLS);
+  for (const k of [...keys].reverse()) {
+    const b = dataLS[k];
+    if (wx >= b.x && wx < b.x + b.width && wy >= b.y && wy < b.y + b.height) {
+      selectedId = k;
+      openEditModal(k);
+      return;
+    }
+  }
+  selectedId = null;
+}
+
+/* ═══ POINTER EVENTS ═══ */
+let isDrawing = false;
+
+canvas.addEventListener("pointerdown", e => {
+  if (e.button === 1 || tool === "move") {
+    isPanning = true;
+    lastDrag = { x: e.clientX, y: e.clientY };
+    canvas.style.cursor = "grabbing";
+    return;
+  }
+  isDrawing = true;
+  handlePointer(e);
+});
+
+canvas.addEventListener("pointermove", e => {
+  const { wx, wy } = screenToWorld(e);
+  document.getElementById("tbCoords").textContent = `x: ${Math.floor(wx)}  y: ${Math.floor(wy)}`;
+
+  if (isPanning) {
+    camX -= (e.clientX - lastDrag.x) / zoom * 5;
+    camY -= (e.clientY - lastDrag.y) / zoom * 5;
+    lastDrag = { x: e.clientX, y: e.clientY };
+    return;
+  }
+  if (isDrawing && (tool === "place" || tool === "erase")) {
+    handlePointer(e);
+  }
+});
+
+canvas.addEventListener("pointerup", () => {
+  isDrawing = false;
+  if (isPanning) {
+    isPanning = false;
+    canvas.style.cursor = tool === "move" ? "grab" : "crosshair";
+  }
+});
+
+canvas.addEventListener("pointerleave", () => { isDrawing = false; isPanning = false; });
+
+canvas.addEventListener("wheel", e => {
+  e.preventDefault();
+  const zf = e.deltaY < 0 ? 1.1 : 0.9;
+  zoom = Math.max(0.2, Math.min(4, zoom * zf));
+  updateStatus();
+}, { passive: false });
+
+function screenToWorld(e) {
+  const r = canvas.getBoundingClientRect();
+  const sx = (e.clientX - r.left) / zoom;
+  const sy = (e.clientY - r.top) / zoom;
+  return { wx: sx + camX, wy: sy + camY };
+}
+
+function handlePointer(e) {
+  const { wx, wy } = screenToWorld(e);
+  if (tool === "place") placeAt(wx, wy);
+  else if (tool === "erase") eraseAt(wx, wy);
+  else if (tool === "select") selectAt(wx, wy);
+}
+
+/* ═══ RENDER ═══ */
+function getTypeIcon(type) {
+  const icons = {
+    wall:"🧱", floor:"🟫", door:"🚪", chest:"📦",
+    enemy:"👾", npc:"🧍", trigger:"⚡", spawn:"🌀"
+  };
+  return icons[type] || "❓";
+}
+
+function render() {
+  c.clearRect(0, 0, canvas.width, canvas.height);
+  c.save();
+  c.scale(zoom, zoom);
+  c.translate(-camX, -camY);
+
+  const vx1 = camX - 1, vy1 = camY - 1;
+  const vx2 = camX + canvas.width / zoom + 1;
+  const vy2 = camY + canvas.height / zoom + 1;
+
+  c.fillStyle = "#0a0a0c";
+  c.fillRect(vx1, vy1, vx2 - vx1, vy2 - vy1);
+
+  if (showGrid) {
+    c.strokeStyle = "red";
+    c.lineWidth = 1 / zoom;
+    const gx1 = Math.floor(vx1 / GRID) * GRID;
+    const gy1 = Math.floor(vy1 / GRID) * GRID;
+    for (let x = gx1; x < vx2; x += GRID) {
+      c.beginPath(); c.moveTo(x, vy1); c.lineTo(x, vy2); c.stroke();
+    }
+    for (let y = gy1; y < vy2; y += GRID) {
+      c.beginPath(); c.moveTo(vx1, y); c.lineTo(vx2, y); c.stroke();
+    }
+    c.strokeStyle = "rgba(0,229,255,0.15)";
+    c.lineWidth = 1 / zoom;
+    c.beginPath(); c.moveTo(0, vy1); c.lineTo(0, vy2); c.stroke();
+    c.beginPath(); c.moveTo(vx1, 0); c.lineTo(vx2, 0); c.stroke();
+  }
+
+  Object.values(dataLS).forEach(b => {
+    if (b.x + b.width < vx1 || b.x > vx2 || b.y + b.height < vy1 || b.y > vy2) return;
+    const isSelected = b.id === selectedId;
+
+    c.shadowColor = b.color;
+    c.shadowBlur = isSelected ? 12 : 4;
+    c.fillStyle = b.color + (b.type === "trigger" ? "55" : "cc");
+    c.beginPath();
+    c.roundRect(b.x + 1, b.y + 1, b.width - 2, b.height - 2, 4);
+    c.fill();
+
+    c.shadowBlur = 0;
+    c.strokeStyle = isSelected ? "#fff" : b.color;
+    c.lineWidth = isSelected ? 2 / zoom : 1 / zoom;
+    c.beginPath();
+    c.roundRect(b.x + 1, b.y + 1, b.width - 2, b.height - 2, 4);
+    c.stroke();
+
+    if (zoom > 0.45) {
+      c.font = `${Math.min(14, GRID * 0.35)}px monospace`;
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+      c.fillStyle = "rgba(255,255,255,0.85)";
+      const icon = getTypeIcon(b.type);
+      c.fillText(icon, b.x + b.width / 2, b.y + b.height / 2 - (zoom > 0.7 ? 8 : 0));
+      if (zoom > 0.7) {
+        c.font = `${Math.min(9, GRID * 0.12)}px monospace`;
+        c.fillStyle = "rgba(255,255,255,0.5)";
+        c.fillText(b.id.toString().slice(0, 8), b.x + b.width / 2, b.y + b.height / 2 + 10);
+      }
+    }
+  });
+
+  c.restore();
+}
+
+function loop() { render(); requestAnimationFrame(loop); }
+loop();
+
+/* ═══ EDIT MODAL ═══ */
+function openEditModal(id) {
+  const b = dataLS[id];
+  if (!b) return;
+  editingId = id;
+  document.getElementById("modalHeader").textContent = "Edit: " + id;
+  document.getElementById("modalFooter").innerHTML = `
+    <button class="action-btn btn-neutral" style="width:80px" onclick="closeModal()">Cancel</button>
+    <button class="action-btn btn-primary" style="width:80px" onclick="saveModal()">Save</button>
+  `;
+  const body = document.getElementById("modalBody");
+  body.innerHTML = `
+    <div class="row2">
+      <div class="field"><label>TYPE</label><input id="me_type" value="${b.type||""}"></div>
+      <div class="field"><label>SCENE</label><input id="me_scene" value="${b.scene||""}"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>IMG</label><input id="me_img" value="${b.img||""}"></div>
+      <div class="field"><label>INFO</label><input id="me_info" value="${b.info||""}"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>HP</label><input id="me_hp" type="number" value="${b.hp||100}"></div>
+      <div class="field"><label>COLOR</label><input type="color" id="me_color" value="${b.color}" style="height:32px"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>X</label><input id="me_x" type="number" value="${b.x}"></div>
+      <div class="field"><label>Y</label><input id="me_y" type="number" value="${b.y}"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>WIDTH</label><input id="me_w" type="number" value="${b.width}"></div>
+      <div class="field"><label>HEIGHT</label><input id="me_h" type="number" value="${b.height}"></div>
+    </div>
+    <div class="field"><label>NOTES</label><textarea id="me_notes">${b.notes||""}</textarea></div>
+  `;
+  document.getElementById("modal").classList.add("open");
+}
+
+function closeModal() {
+  document.getElementById("modal").classList.remove("open");
+  editingId = null;
+}
+
+function saveModal() {
+  if (!editingId || !dataLS[editingId]) return closeModal();
+  const b = dataLS[editingId];
+  b.type = document.getElementById("me_type").value;
+  b.scene = document.getElementById("me_scene").value;
+  b.img = document.getElementById("me_img").value;
+  b.info = document.getElementById("me_info").value;
+  b.hp = Number(document.getElementById("me_hp").value);
+  b.color = document.getElementById("me_color").value;
+  b.x = Number(document.getElementById("me_x").value);
+  b.y = Number(document.getElementById("me_y").value);
+  b.width = Number(document.getElementById("me_w").value);
+  b.height = Number(document.getElementById("me_h").value);
+  b.notes = document.getElementById("me_notes").value;
+  save();
+  closeModal();
+  notify("Saved ✓");
+}
+
+document.getElementById("modal").addEventListener("click", e => {
+  if (e.target === document.getElementById("modal")) closeModal();
+});
+
+/* ═══ TOOLBAR ACTIONS ═══ */
+function toggleGrid() {
+  showGrid = !showGrid;
+  document.getElementById("gridToggleLabel").textContent = showGrid ? "ON" : "OFF";
+}
+
+function toggleSnap() {
+  snapToGrid = !snapToGrid;
+  document.getElementById("snapLabel").textContent = snapToGrid ? "ON" : "OFF";
+}
+
+function resetCamera() { camX = 0; camY = 0; zoom = 1; updateStatus(); }
+function zoomIn() { zoom = Math.min(4, zoom * 1.2); updateStatus(); }
+function zoomOut() { zoom = Math.max(0.2, zoom / 1.2); updateStatus(); }
+function zoomReset() { zoom = 1; updateStatus(); }
+
+function clearAll() {
+  if (!Object.keys(dataLS).length) return notify("Already empty");
+  if (!confirm("Clear all objects?")) return;
+  for (const k in dataLS) delete dataLS[k];
+  selectedId = null;
+  save();
+  notify("Cleared");
+}
+
+function exportJSON() {
+  const str = JSON.stringify(dataLS, null, 2);
+  document.getElementById("modalHeader").textContent = "Export JSON";
+  document.getElementById("modalBody").innerHTML = `
+    <textarea style="width:100%;height:300px;background:#0a0a0c;color:#a8ff3e;border:1px solid var(--border);font-family:monospace;font-size:11px;padding:10px;border-radius:6px;resize:none">${str}</textarea>
+  `;
+  document.getElementById("modalFooter").innerHTML = `
+    <button class="action-btn btn-neutral" style="width:80px" onclick="closeModal()">Close</button>
+    <button class="action-btn btn-success" style="width:120px" onclick="copyExport()">📋 Copy</button>
+  `;
+  document.getElementById("modal").classList.add("open");
+}
+
+function copyExport() {
+  const ta = document.querySelector("#modalBody textarea");
+  navigator.clipboard.writeText(ta.value).then(() => notify("Copied!"));
+}
+
+/* ═══ PANEL TOGGLE ═══ */
+document.getElementById("panelToggle").onclick = () => {
+  const p = document.getElementById("leftPanel");
+  const collapsed = p.classList.toggle("collapsed");
+  document.getElementById("panelToggle").textContent = collapsed ? "▶" : "◀";
+  const offset = collapsed ? "30px" : "260px";
+  document.getElementById("topBar").style.left = offset;
+  document.getElementById("canvasWrap").style.left = offset;
+  document.getElementById("statusBar").style.left = offset;
+  setTimeout(resizeCanvas, 1);
+};
+
+/* ═══ KEYBOARD SHORTCUTS ═══ */
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || e.target.tagName === "TEXTAREA") return;
+  const map = { "q":"place","w":"select","e":"erase","m":"move" };
+  if (map[e.key]) setTool(map[e.key]);
+  if (e.key === "Delete" && selectedId) {
+    delete dataLS[selectedId];
+    selectedId = null;
+    save();
+    notify("Deleted");
+  }
+  if (e.key === "=" || e.key === "+") zoomIn();
+  if (e.key === "-") zoomOut();
+  if (e.key === "0") zoomReset();
+  if (e.key === "g") toggleGrid();
+  if (e.key === "Escape") { closeModal(); selectedId = null; }
+
+  const spd = 40 / zoom;
+  if (e.key === "ArrowLeft") camX -= spd;
+  if (e.key === "ArrowRight") camX += spd;
+  if (e.key === "ArrowUp") camY -= spd;
+  if (e.key === "ArrowDown") camY += spd;
+});
+
+/* ═══ STATUS ═══ */
+function updateStatus() {
+  document.getElementById("st_cam").textContent = `${Math.round(camX)}, ${Math.round(camY)}`;
+  document.getElementById("st_zoom").textContent = `${Math.round(zoom * 100)}%`;
+  document.getElementById("st_scene").textContent = document.getElementById("ui_scene").value;
+}
+setInterval(updateStatus, 100);
+
+/* ═══ NOTIFY ═══ */
+let notifyTimer;
+function notify(msg) {
+  const el = document.getElementById("notify");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(notifyTimer);
+  notifyTimer = setTimeout(() => el.classList.remove("show"), 1800);
+}
+
+/* ═══ TOUCH ZOOM ═══ */
+let lastTouchDist = 0;
+canvas.addEventListener("touchstart", e => {
+  if (e.touches.length === 2) {
+    lastTouchDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+  }
+}, { passive: true });
+canvas.addEventListener("touchmove", e => {
+  if (e.touches.length === 2) {
+    const d = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    zoom = Math.max(0.2, Math.min(4, zoom * (d / lastTouchDist)));
+    lastTouchDist = d;
+    updateStatus();
+  }
+}, { passive: true });
+
+/* ═══ INIT ═══ */
+updateObjCount();
+document.getElementById("ui_scene").addEventListener("input", updateStatus);
+notify("Adiva Editor ready · Q=Place E=Erase W=Select G=Grid");
+</script>
+</body>
+</html>
