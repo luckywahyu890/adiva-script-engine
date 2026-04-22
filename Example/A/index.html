@@ -215,6 +215,7 @@
     const listDraw = [hero, tembok, listPanahMiya, buff, kelomang, bulletKelomang, guin, peluruGuin, drawItem]
     const listUpdateDraw = []
     async function init(){
+      const loading = document.getElementById("loading")
       const texture = await aset.load()
       loading.style.display = "none"
       hpBar.el.style.display = "block"
