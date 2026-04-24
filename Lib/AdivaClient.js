@@ -2060,29 +2060,390 @@ class VirtualBarDiv {
     }
 }
 
-/*
-Cara pakai:
-const hpBar = new VirtualBarDiv({
-    value: 100,
-    maxValue: 100,
-    width: 120,
-    height: 8,
-    top: 50,
-    left: 200,
-    fillColor: "red",
-    visualColor: "maroon",
-    background: "#222",
-    lerpSpeed: 5,       // sama persis dengan * 5 * dt
-});
+class VirtualAnalog {
+    static injected = false;
 
-// Waktu monster kena damage:
-hpBar.setValue(monster.hp);
+    static injectCSS() {
+        if (this.injected) return;
 
-// Update posisi tiap frame (ikut kamera):
-hpBar.moveTo({
-    left: monster.x - camera.x,
-    top:  monster.y - camera.y,
-});
-Bedanya dari renderer approach:
-Lerp hpVisual diurus internal di dalam class lewat rAF loop, kamu cukup panggil setValue() saat HP berubah — tidak perlu update manual tiap frame
-moveTo() tetap perlu dipanggil tiap frame kalau bar ikut posisi monster di world space*/
+        const style = document.createElement("style");
+        style.textContent = `
+      .vanalog {
+        position: fixed;
+        touch-action: none;
+        user-select: none;
+        pointer-events: none; /* base zone is invisible, only knob captures */
+      }
+
+      .vanalog__zone {
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.08);
+        border: 2px solid rgba(255,255,255,0.18);
+        backdrop-filter: blur(4px);
+        box-shadow: 0 0 0 4px rgba(255,255,255,0.05) inset;
+        pointer-events: auto;
+        touch-action: none;
+        will-change: transform;
+      }
+
+      .vanalog__knob {
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.35);
+        border: 2px solid rgba(255,255,255,0.6);
+        backdrop-filter: blur(8px);
+        box-shadow:
+          0 2px 12px rgba(0,0,0,0.4),
+          0 0 0 3px rgba(255,255,255,0.08) inset;
+        pointer-events: none;
+        will-change: transform;
+        transition: transform 0.06s ease, background 0.1s ease;
+      }
+
+      .vanalog__knob--active {
+        background: rgba(255,255,255,0.55);
+        transform: scale(0.92);
+      }
+
+      .vanalog--hidden .vanalog__zone,
+      .vanalog--hidden .vanalog__knob {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* optional direction indicators */
+      .vanalog__dir {
+        position: absolute;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.25);
+        pointer-events: none;
+      }
+    `;
+        document.head.appendChild(style);
+        this.injected = true;
+    }
+
+    /**
+     * @param {Object} opts
+     * @param {number}  [opts.left]           - px from left (null = use right)
+     * @param {number}  [opts.right]          - px from right (null = use left)
+     * @param {number}  [opts.bottom]         - px from bottom (null = use top)
+     * @param {number}  [opts.top]            - px from top (null = use bottom)
+     * @param {number}  [opts.size=120]       - outer zone diameter in px
+     * @param {number}  [opts.knobSize=50]    - inner knob diameter in px
+     * @param {number}  [opts.deadzone=0.08]  - dead-zone radius (0..1)
+     * @param {boolean} [opts.floating=false] - zone follows first touch position
+     * @param {boolean} [opts.returnOnRelease=true] - knob snaps back on release
+     * @param {boolean} [opts.showDirs=false] - show N/S/E/W dot indicators
+     * @param {boolean} [opts.visible=true]
+     * @param {Function} [opts.onChange]      - called every time axis changes
+     */
+    constructor({
+        left = null,
+        right = null,
+        bottom = 15,
+        top = null,
+        size = 120,
+        knobSize = 50,
+        deadzone = 0.08,
+        floating = false,
+        returnOnRelease = true,
+        showDirs = false,
+        visible = true,
+        onChange = null,
+    } = {}) {
+        VirtualAnalog.injectCSS();
+
+        this._size = size;
+        this._knobSize = knobSize;
+        this._radius = (size - knobSize) / 2; // max knob travel
+        this._deadzone = deadzone;
+        this._floating = floating;
+        this._returnOnRelease = returnOnRelease;
+        this._onChange = onChange;
+        this._visible = visible;
+
+        // State
+        this._axis = { x: 0, y: 0 };
+        this._angle = null;
+        this._distance = 0;
+        this._active = false;
+        this._pointerId = null;
+        this._originX = 0; // center of zone in client coords
+        this._originY = 0;
+
+        // Floating restore — captured after DOM appended (see below)
+        this._baseLeft   = null;
+        this._baseTop    = null;
+        this._baseRight  = null;
+        this._baseBottom = null;
+
+        // Build DOM
+        this.el = document.createElement("div");
+        this.el.className = "vanalog";
+        this.el.style.width = size + "px";
+        this.el.style.height = size + "px";
+
+        this._applyPosition({ left, right, bottom, top });
+
+        // Zone (outer ring)
+        this._zone = document.createElement("div");
+        this._zone.className = "vanalog__zone";
+        this._zone.style.width = size + "px";
+        this._zone.style.height = size + "px";
+        this._zone.style.left = "0";
+        this._zone.style.top = "0";
+
+        // Knob (inner handle)
+        this._knob = document.createElement("div");
+        this._knob.className = "vanalog__knob";
+        this._knob.style.width = knobSize + "px";
+        this._knob.style.height = knobSize + "px";
+        // center knob inside zone
+        const knobOffset = (size - knobSize) / 2;
+        this._knob.style.left = knobOffset + "px";
+        this._knob.style.top = knobOffset + "px";
+
+        this.el.appendChild(this._zone);
+        this.el.appendChild(this._knob);
+
+        if (showDirs) this._addDirectionDots();
+        if (!visible) this.el.classList.add("vanalog--hidden");
+
+        document.body.appendChild(this.el);
+
+        // Snapshot initial CSS position strings for floating restore
+        // Must be done AFTER append so computed styles are available
+        this._baseLeft   = this.el.style.left   || null;
+        this._baseTop    = this.el.style.top     || null;
+        this._baseRight  = this.el.style.right   || null;
+        this._baseBottom = this.el.style.bottom  || null;
+
+        this._bindEvents();
+    }
+
+    // ─── Position helper ──────────────────────────────────────────────────────
+
+    _applyPosition({ left, right, bottom, top }) {
+        const el = this.el;
+        if (left !== null)   el.style.left   = left   + "px";
+        if (right !== null)  el.style.right  = right  + "px";
+        if (bottom !== null) el.style.bottom = bottom + "px";
+        if (top !== null)    el.style.top    = top    + "px";
+    }
+
+    // ─── Direction dots ───────────────────────────────────────────────────────
+
+    _addDirectionDots() {
+        const half = this._size / 2;
+        const margin = 8;
+        const positions = [
+            { left: half - 3, top: margin },           // N
+            { left: half - 3, top: this._size - margin - 6 }, // S
+            { left: margin,   top: half - 3 },         // W
+            { left: this._size - margin - 6, top: half - 3 }, // E
+        ];
+        positions.forEach(pos => {
+            const dot = document.createElement("div");
+            dot.className = "vanalog__dir";
+            dot.style.left = pos.left + "px";
+            dot.style.top  = pos.top  + "px";
+            this.el.appendChild(dot);
+        });
+    }
+
+    // ─── Event binding ────────────────────────────────────────────────────────
+
+    _bindEvents() {
+        // Use the zone as capture area
+        this._zone.addEventListener("pointerdown", e => this._onDown(e), { passive: false });
+
+        // Global move/up so dragging outside zone still works
+        // Uses pointer capture for clean multi-touch handling
+        this._zone.addEventListener("pointermove",   e => this._onMove(e),   { passive: false });
+        this._zone.addEventListener("pointerup",     e => this._onUp(e),     { passive: false });
+        this._zone.addEventListener("pointercancel", e => this._onUp(e),     { passive: false });
+    }
+
+    _onDown(e) {
+        e.preventDefault();
+
+        // Already tracking another pointer (someone tapped with 2nd finger etc.)
+        if (this._pointerId !== null) return;
+
+        this._pointerId = e.pointerId;
+        this._zone.setPointerCapture(e.pointerId); // lock pointer to this element
+
+        // Floating mode: reposition zone to touch location
+        if (this._floating) {
+            const elRect = this.el.getBoundingClientRect();
+            const zoneHalf = this._size / 2;
+            // move el so zone center = touch point
+            const newLeft = e.clientX - zoneHalf;
+            const newTop  = e.clientY - zoneHalf;
+            this.el.style.left   = newLeft + "px";
+            this.el.style.top    = newTop  + "px";
+            this.el.style.right  = "auto";
+            this.el.style.bottom = "auto";
+        }
+
+        // Compute zone center in client coords
+        const rect = this._zone.getBoundingClientRect();
+        this._originX = rect.left + rect.width  / 2;
+        this._originY = rect.top  + rect.height / 2;
+
+        this._active = true;
+        this._knob.classList.add("vanalog__knob--active");
+        this._update(e.clientX, e.clientY);
+    }
+
+    _onMove(e) {
+        e.preventDefault();
+        if (e.pointerId !== this._pointerId) return;
+        this._update(e.clientX, e.clientY);
+    }
+
+    _onUp(e) {
+        if (e.pointerId !== this._pointerId) return;
+        e.preventDefault();
+
+        this._pointerId = null;
+        this._active = false;
+        this._knob.classList.remove("vanalog__knob--active");
+
+        if (this._returnOnRelease) {
+            this._axis = { x: 0, y: 0 };
+            this._angle = null;
+            this._distance = 0;
+            this._setKnobPos(0, 0);
+            this._fireChange();
+        }
+
+        // Floating: restore original position
+        if (this._floating) {
+            // Clear the temp left/top set during floating
+            this.el.style.left   = this._baseLeft   ?? "";
+            this.el.style.top    = this._baseTop    ?? "";
+            this.el.style.right  = this._baseRight  ?? "";
+            this.el.style.bottom = this._baseBottom ?? "";
+        }
+    }
+
+    _update(clientX, clientY) {
+        const dx = clientX - this._originX;
+        const dy = clientY - this._originY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const maxR = this._radius;
+
+        // Clamp knob within zone radius
+        const clampedDist = Math.min(dist, maxR);
+        const angle = Math.atan2(dy, dx); // radians
+
+        const knobX = Math.cos(angle) * clampedDist;
+        const knobY = Math.sin(angle) * clampedDist;
+
+        this._setKnobPos(knobX, knobY);
+
+        // Normalise -1..1
+        let normX = knobX / maxR;
+        let normY = knobY / maxR;
+
+        // Apply deadzone
+        const normDist = Math.min(dist / maxR, 1);
+        if (normDist < this._deadzone) {
+            normX = 0;
+            normY = 0;
+            this._angle = null;
+            this._distance = 0;
+        } else {
+            // Rescale so deadzone edge = 0, outer edge = 1
+            const scaled = (normDist - this._deadzone) / (1 - this._deadzone);
+            const scaledX = (normX / normDist) * scaled;
+            const scaledY = (normY / normDist) * scaled;
+            normX = Math.max(-1, Math.min(1, scaledX));
+            normY = Math.max(-1, Math.min(1, scaledY));
+            this._angle = angle;
+            this._distance = Math.min(scaled, 1);
+        }
+
+        this._axis = { x: normX, y: normY };
+        this._fireChange();
+    }
+
+    _setKnobPos(x, y) {
+        const halfZone = this._size / 2;
+        const halfKnob = this._knobSize / 2;
+        this._knob.style.left = (halfZone - halfKnob + x) + "px";
+        this._knob.style.top  = (halfZone - halfKnob + y) + "px";
+    }
+
+    _fireChange() {
+        if (typeof this._onChange === "function") {
+            this._onChange({
+                x:        this._axis.x,
+                y:        this._axis.y,
+                angle:    this._angle,
+                distance: this._distance,
+                active:   this._active,
+            });
+        }
+    }
+
+    // ─── Public getters ───────────────────────────────────────────────────────
+
+    /** { x, y } each -1..1 */
+    get axis()     { return { ...this._axis }; }
+
+    /** Radians from +X axis, null when idle/deadzone */
+    get angle()    { return this._angle; }
+
+    /** 0..1, rescaled past deadzone */
+    get distance() { return this._distance; }
+
+    /** True while a pointer is held down */
+    get active()   { return this._active; }
+
+    /** 8-way direction string: "N","NE","E","SE","S","SW","W","NW",null */
+    get direction() {
+        if (!this._active || this._angle === null) return null;
+        const deg = ((this._angle * 180 / Math.PI) + 360) % 360;
+        const dirs = ["E","NE","N","NW","W","SW","S","SE","E"];
+        return dirs[Math.round(deg / 45)];
+    }
+
+    // ─── Visibility (same API as VirtualButton) ───────────────────────────────
+
+    show() {
+        if (this._visible) return this;
+        this._visible = true;
+        this.el.classList.remove("vanalog--hidden");
+        return this;
+    }
+
+    hide() {
+        if (!this._visible) return this;
+        this._visible = false;
+        this.el.classList.add("vanalog--hidden");
+        return this;
+    }
+
+    toggle() {
+        return this._visible ? this.hide() : this.show();
+    }
+
+    get visible() { return this._visible; }
+
+    // ─── Setters ──────────────────────────────────────────────────────────────
+
+    /** Dynamically change deadzone (0..1) */
+    set deadzone(v) { this._deadzone = Math.max(0, Math.min(1, v)); }
+    get deadzone()  { return this._deadzone; }
+
+    /** Destroy and remove from DOM */
+    destroy() {
+        this.el.remove();
+    }
+            }
